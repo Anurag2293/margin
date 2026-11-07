@@ -388,6 +388,7 @@ private fun ProfileContent(person: Person, onOpenUrl: (String) -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
             .padding(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
