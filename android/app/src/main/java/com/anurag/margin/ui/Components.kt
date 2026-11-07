@@ -90,9 +90,24 @@ fun Avatar(name: String, handle: String, avatar: String?, size: Dp) {
 
 private fun decodeAvatar(dataUri: String): ImageBitmap? = try {
     val bytes = Base64.getDecoder().decode(dataUri.substringAfter("base64,"))
-    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    val sample = avatarSampleSize(bounds.outWidth, bounds.outHeight)
+    if (sample == 0) null
+    else BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+        ?.asImageBitmap()
 } catch (_: Exception) {
     null
+} catch (_: OutOfMemoryError) {
+    null
+}
+
+/** Power-of-two sample size that brings an avatar down to at most [target] px a side; 0 rejects it. */
+fun avatarSampleSize(width: Int, height: Int, target: Int = 512): Int {
+    if (width <= 0 || height <= 0 || width > 16_384 || height > 16_384) return 0
+    var sample = 1
+    while (width / sample > target || height / sample > target) sample *= 2
+    return sample
 }
 
 private fun initials(name: String): String {
@@ -152,7 +167,7 @@ fun formatPostTime(value: String?, dateOnly: Boolean = false): String {
 }
 
 fun formatJoined(value: String): String {
-    val date = parseJoined(value) ?: parseInstant(value)?.toLocalDate() ?: return value
+    val date = parseJoined(value.take(7)) ?: return value
     return joinedFormat.format(date)
 }
 

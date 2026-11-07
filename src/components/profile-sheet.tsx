@@ -169,7 +169,7 @@ export function formatCount(value: number): string {
 }
 
 export function formatJoined(value: string): string {
-  const date = new Date(value.length === 7 ? `${value}-01T00:00:00Z` : value.length === 10 ? `${value}T00:00:00Z` : value);
+  const date = new Date(`${value.slice(0, 7)}-01T00:00:00Z`);
   return new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 

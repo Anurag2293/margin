@@ -99,7 +99,7 @@ object SnapshotParser {
         if (data !is JSONObject) fail("A snapshot must be a JSON object.")
         if (data.opt("format") != Limits.FORMAT) fail("format must be single-post-snapshot.")
         val version = data.opt("version")
-        if (version !is Int || version != Limits.VERSION) fail("version must be 1.")
+        if (version !is Number || version.toDouble() != Limits.VERSION.toDouble()) fail("version must be 1.")
         val example = data.opt("example")
         if (example != null && example !is Boolean) fail("example must be true or false.")
         if (!data.has("post")) fail("post is missing.")

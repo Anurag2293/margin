@@ -72,7 +72,7 @@ object Share {
     /** The share token in a Margin reader link, or null if the text is not one. */
     fun tokenFromLink(text: String): String? {
         val trimmed = text.trim()
-        val match = Regex("""^https?://([^/?#]+)[^#]*#(.+)$""", RegexOption.IGNORE_CASE).matchEntire(trimmed)
+        val match = Regex("""^https?://([^/?#\s]+)[^#\s]*#(\S+)$""", RegexOption.IGNORE_CASE).matchEntire(trimmed)
             ?: return null
         val host = match.groupValues[1].lowercase()
         val local = host.startsWith("127.0.0.1") || host.startsWith("localhost")
@@ -101,8 +101,10 @@ object Importer {
     fun open(input: String): Opened {
         val text = input.removePrefix("﻿").trim()
         if (text.isEmpty()) return Opened.Invalid("Paste a snapshot first.")
-        val link = Share.tokenFromLink(text) ?: Share.findLink(text)?.let(Share::tokenFromLink)
-        if (link != null) return Share.decode(link).toOpened()
+        if (!text.startsWith("{")) {
+            val link = Share.tokenFromLink(text) ?: Share.findLink(text)?.let(Share::tokenFromLink)
+            if (link != null) return Share.decode(link).toOpened()
+        }
         if (!text.startsWith("{") && Urls.looksLikeBareUrl(text)) {
             return Opened.UrlOnly(text, Urls.isXFamilyUrl(text))
         }

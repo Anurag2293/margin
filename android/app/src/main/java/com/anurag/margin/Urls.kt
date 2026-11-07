@@ -1,5 +1,7 @@
 package com.anurag.margin
 
+import java.net.IDN
+
 object Urls {
     private val statusHosts = setOf("x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com")
     private val blockedRoots = listOf("x.com", "twitter.com", "twimg.com", "t.co")
@@ -13,16 +15,28 @@ object Urls {
         return blockedRoots.any { host == it || host.endsWith(".$it") }
     }
 
-    /** Returns the lowercased host of a plain default-port https URL, or null. */
-    fun plainHttpsHost(value: String): String? {
+    /**
+     * Returns the lowercased host of a plain default-port https URL, or null. With [allowIdn], a non-ASCII
+     * host is converted to punycode first, as the browser's URL parser does.
+     */
+    fun plainHttpsHost(value: String, allowIdn: Boolean = false): String? {
         if (value.any { it.code <= 0x20 || it.code == 0x7F || it == '\\' || it == '@' }) return null
         val match = httpsParts.matchEntire(value) ?: return null
-        val host = match.groupValues[1].lowercase().removeSuffix(".")
+        val written = match.groupValues[1].removeSuffix(".")
+        val host = if (allowIdn) {
+            try {
+                IDN.toASCII(written, IDN.ALLOW_UNASSIGNED).lowercase()
+            } catch (_: IllegalArgumentException) {
+                return null
+            }
+        } else {
+            written.lowercase()
+        }
         if (host.isEmpty() || !hostChars.matches(host) || host.startsWith(".") || host.contains("..")) return null
         return host
     }
 
-    fun isPlainHttps(value: String): Boolean = plainHttpsHost(value) != null
+    fun isPlainHttps(value: String): Boolean = plainHttpsHost(value, allowIdn = true) != null
 
     fun canonicalStatusUrl(input: String): String? {
         val trimmed = input.trim()

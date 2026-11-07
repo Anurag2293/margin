@@ -356,8 +356,14 @@ function UrlOnly({ url, x }: { url: string; x: boolean }) {
 }
 
 function readerLinkToken(text: string): string | null {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{")) return null;
+  const candidate = /\s/.test(trimmed)
+    ? trimmed.match(/https?:\/\/\S+#s1\.[A-Za-z0-9_-]+/)?.[0]
+    : trimmed;
+  if (!candidate) return null;
   try {
-    const url = new URL(text.trim());
+    const url = new URL(candidate);
     if (url.protocol !== "https:" && url.protocol !== "http:") return null;
     const parsed = tokenFromHash(url.hash);
     return parsed.kind === "token" ? parsed.token : null;

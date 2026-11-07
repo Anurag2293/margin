@@ -4,6 +4,7 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 
 data class HistoryEntry(val key: String, val snapshot: Snapshot, val openedAt: Long)
 
@@ -51,8 +52,8 @@ class History(context: Context) {
     }
 
     private fun keyOf(snapshot: Snapshot): String {
-        val post = snapshot.post
-        return post.sourceUrl ?: "${post.authorHandle}:${post.createdAt}:${post.text.hashCode()}"
+        val digest = MessageDigest.getInstance("SHA-256").digest(SnapshotJson.canonical(snapshot).toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
     }
 
     companion object {

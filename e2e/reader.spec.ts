@@ -297,6 +297,13 @@ test("opens a reader link pasted into the box", async ({ page }) => {
   await page.getByRole("button", { name: "Read snapshot" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Ada M. Example" })).toBeVisible();
   await expect(page.getByTestId("quote-text")).toContainText("A quoted line");
+
+  await page.getByRole("button", { name: "Close post" }).click();
+  await page
+    .getByLabel("Snapshot JSON")
+    .fill(`http://127.0.0.1:43123${readerPath(hostileSnapshot())} read this one`);
+  await page.getByRole("button", { name: "Read snapshot" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ada M. Example" })).toBeVisible();
   network.assertQuiet();
 });
 

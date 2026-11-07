@@ -50,6 +50,41 @@ class SnapshotTest {
     }
 
     @Test
+    fun opensALinkFollowedByProse() {
+        val text = "https://margin-eight-fawn.vercel.app/#s1.$webToken read this one"
+        val opened = Importer.open(text)
+        assertTrue("got $opened", opened is Opened.Post)
+    }
+
+    @Test
+    fun keepsTheJsonPostWhenItsTextContainsAReaderLink() {
+        val json = snapshot("\"text\":\"Outer, see https://margin-eight-fawn.vercel.app/#s1.$webToken\"")
+        val opened = Importer.open(json)
+        assertTrue("got $opened", opened is Opened.Post)
+        assertEquals("Ada", (opened as Opened.Post).snapshot.post.authorName)
+    }
+
+    @Test
+    fun shrinksOrRejectsHugeAvatars() {
+        assertEquals(1, com.anurag.margin.ui.avatarSampleSize(96, 96))
+        assertEquals(2, com.anurag.margin.ui.avatarSampleSize(1024, 800))
+        assertEquals(16, com.anurag.margin.ui.avatarSampleSize(8_000, 8_000))
+        assertEquals(0, com.anurag.margin.ui.avatarSampleSize(10_000, 20_000))
+        assertEquals(0, com.anurag.margin.ui.avatarSampleSize(-1, -1))
+    }
+
+    @Test
+    fun matchesTheWebOnEdgeCaseValues() {
+        assertTrue(SnapshotParser.parse("""{"format":"single-post-snapshot","version":1.0,"post":{"authorName":"Ada","authorHandle":"ada","text":"a"}}""") is ParseResult.Ok)
+        val idn = ok(SnapshotParser.parse(snapshot("\"text\":\"a\",\"profile\":{\"website\":\"https://münchen.de\"}")))
+        assertEquals("https://münchen.de", idn.post.profile?.website)
+        assertTrue(Linkify.classify("https://münchen.de") is TextPart.Plain)
+        assertEquals("March 2014", com.anurag.margin.ui.formatJoined("2014-03-01T00:30:00+09:00"))
+        assertEquals("February 2014", com.anurag.margin.ui.formatJoined("2014-02-28T23:30:00-05:00"))
+        assertEquals("March 2014", com.anurag.margin.ui.formatJoined("2014-03"))
+    }
+
+    @Test
     fun rejectsBadInput() {
         assertTrue(failed(SnapshotParser.parse("{")).contains("not valid JSON"))
         assertTrue(failed(SnapshotParser.parse(snapshot("\"text\":\"a\",\"sourceUrl\":\"javascript:alert(1)\""))).contains("sourceUrl"))
