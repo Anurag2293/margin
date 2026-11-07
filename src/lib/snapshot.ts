@@ -8,6 +8,18 @@ export type Media = {
   alt?: string;
 };
 
+export type Profile = {
+  avatar?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  joinedAt?: string;
+  followers?: number;
+  following?: number;
+  posts?: number;
+  verified?: boolean;
+};
+
 export type Quote = {
   authorName: string;
   authorHandle: string;
@@ -16,6 +28,7 @@ export type Quote = {
   sourceUrl?: string;
   lang?: string;
   media?: Media[];
+  profile?: Profile;
 };
 
 export type Post = Quote & {
@@ -37,6 +50,10 @@ const MEDIA_KINDS = new Set<MediaKind>(["photo", "video", "gif", "audio"]);
 const URL_KEYS = ["url", "src", "href", "source", "previewUrl", "poster"] as const;
 const ISO_TIME =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
+const JOINED = /^\d{4}-\d{2}(?:-\d{2})?$/;
+const AVATAR = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+const PROFILE_TEXT = ["bio", "location"] as const;
+const PROFILE_COUNTS = ["followers", "following", "posts"] as const;
 const LANG = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/;
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const BIDI = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
@@ -127,6 +144,8 @@ function parsePost(value: unknown, label: "Post" | "Quoted post"): Post {
   if (sourceUrl) post.sourceUrl = sourceUrl;
   if (lang) post.lang = lang;
   if (media.length > 0) post.media = media;
+  const profile = parseOptionalProfile(own(value, "profile"), label);
+  if (profile) post.profile = profile;
 
   if (label === "Post" && Object.prototype.hasOwnProperty.call(value, "quote")) {
     const quoteValue = own(value, "quote");
@@ -206,6 +225,84 @@ function parseOptionalLang(value: unknown, label: string): string | undefined {
   return lang;
 }
 
+function parseOptionalProfile(value: unknown, label: string): Profile | undefined {
+  if (value === undefined || value === null) return undefined;
+  const where = `${label} profile`;
+  if (!isPlainObject(value)) fail(`${where} must be a JSON object.`);
+  const profile: Profile = {};
+
+  const avatar = own(value, "avatar");
+  if (avatar !== undefined) {
+    if (typeof avatar !== "string") fail(`${where} avatar must be a data:image URI.`);
+    const trimmed = avatar.trim();
+    if (trimmed.length > LIMITS.maxAvatar) {
+      fail(`${where} avatar is longer than ${LIMITS.maxAvatar.toLocaleString("en-US")} characters.`);
+    }
+    if (!AVATAR.test(trimmed)) {
+      fail(`${where} avatar must be a base64 data:image URI of a JPEG, PNG, or WebP.`);
+    }
+    profile.avatar = trimmed;
+  }
+
+  for (const key of PROFILE_TEXT) {
+    const raw = own(value, key);
+    if (raw === undefined) continue;
+    if (typeof raw !== "string") fail(`${where} ${key} must be text.`);
+    const max = key === "bio" ? LIMITS.maxBio : LIMITS.maxLocation;
+    const cleaned = clean(raw, { multiline: key === "bio", stripBidi: key !== "bio" });
+    if (cleaned.length > max) fail(`${where} ${key} is longer than ${max} characters.`);
+    if (cleaned) profile[key] = cleaned;
+  }
+
+  const website = own(value, "website");
+  if (website !== undefined) {
+    if (typeof website !== "string") fail(`${where} website must be an https link.`);
+    const trimmed = website.trim();
+    if (trimmed.length > LIMITS.maxWebsite || !isPlainHttps(trimmed)) {
+      fail(`${where} website must be an https link.`);
+    }
+    profile.website = trimmed;
+  }
+
+  const joinedAt = own(value, "joinedAt");
+  if (joinedAt !== undefined) {
+    if (typeof joinedAt !== "string") fail(`${where} joinedAt must be a date like 2014-03 or 2014-03-21.`);
+    const trimmed = joinedAt.trim();
+    const valid =
+      (JOINED.test(trimmed) && !Number.isNaN(Date.parse(trimmed.length === 7 ? `${trimmed}-01` : trimmed))) ||
+      (ISO_TIME.test(trimmed) && !Number.isNaN(Date.parse(trimmed)));
+    if (!valid) fail(`${where} joinedAt must be a date like 2014-03 or 2014-03-21.`);
+    profile.joinedAt = trimmed;
+  }
+
+  for (const key of PROFILE_COUNTS) {
+    const raw = own(value, key);
+    if (raw === undefined) continue;
+    if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0 || raw > LIMITS.maxCount) {
+      fail(`${where} ${key} must be a whole number of zero or more.`);
+    }
+    profile[key] = raw;
+  }
+
+  const verified = own(value, "verified");
+  if (verified !== undefined) {
+    if (typeof verified !== "boolean") fail(`${where} verified must be true or false.`);
+    if (verified) profile.verified = true;
+  }
+
+  return Object.keys(profile).length ? profile : undefined;
+}
+
+function isPlainHttps(value: string): boolean {
+  if (/[\u0000-\u0020\u007F\\@]/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password && url.port === "";
+  } catch {
+    return false;
+  }
+}
+
 function parseMedia(value: unknown, label: string): Media[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) fail(`${label} media must be an array.`);
@@ -253,6 +350,7 @@ function canonicalPost(post: Post): Post {
   if (post.lang) canonical.lang = post.lang;
   if (post.quote) canonical.quote = canonicalQuote(post.quote);
   if (post.media?.length) canonical.media = post.media.map(canonicalMedia);
+  if (post.profile) canonical.profile = { ...post.profile };
   return canonical;
 }
 
@@ -266,6 +364,7 @@ function canonicalQuote(quote: Quote): Quote {
   if (quote.sourceUrl) canonical.sourceUrl = quote.sourceUrl;
   if (quote.lang) canonical.lang = quote.lang;
   if (quote.media?.length) canonical.media = quote.media.map(canonicalMedia);
+  if (quote.profile) canonical.profile = { ...quote.profile };
   return canonical;
 }
 

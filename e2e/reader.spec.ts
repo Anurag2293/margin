@@ -190,9 +190,9 @@ test("roundtrips a reader link, download, and clipboard without calling X", asyn
   await page.goto(readerPath(hostileSnapshot()));
   await expect(page.getByTestId("post-text")).toContainText("日本語");
 
-  const link = await page.getByTestId("reader-link").inputValue();
+  const link = page.url();
   expect(link).toContain("/#s1.");
-  await page.getByRole("button", { name: "Copy reader link" }).click();
+  await page.getByRole("button", { name: "Copy link" }).click();
   await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toBe(link);
@@ -215,7 +215,7 @@ test("roundtrips a reader link, download, and clipboard without calling X", asyn
   await expect(page.getByRole("heading", { level: 2, name: "Ada M. Example" })).toBeVisible();
   await expect(page.getByTestId("quote-text")).toContainText("A quoted line");
 
-  await page.getByRole("button", { name: "Clear" }).click();
+  await page.getByRole("button", { name: "Close post" }).click();
   await expect(page.getByRole("heading", { name: "Read one post" })).toBeVisible();
   expect(page.url()).not.toContain("#s1.");
   network.assertQuiet();
@@ -245,7 +245,7 @@ test("source control warns before any navigation to X", async ({ page }) => {
 test("labeled example is marked as invented", async ({ page }) => {
   const network = guard(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Show labeled example" }).click();
+  await page.getByRole("button", { name: "Try the example" }).click();
   await expect(page.getByTestId("example-banner")).toContainText("Not a real post");
   await expect(page.getByRole("heading", { level: 2, name: "Sample Author" })).toBeVisible();
   await expect(page.getByTestId("post-text")).toContainText("日本語");
@@ -287,5 +287,65 @@ test("fits a phone width in light and dark themes", async ({ page }) => {
     .toBe(!startedDark);
   const after = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(after).not.toBe(before);
+  network.assertQuiet();
+});
+
+test("opens a reader link pasted into the box", async ({ page }) => {
+  const network = guard(page);
+  await page.goto("/");
+  await page.getByLabel("Snapshot JSON").fill(`http://127.0.0.1:43123${readerPath(hostileSnapshot())}`);
+  await page.getByRole("button", { name: "Read snapshot" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ada M. Example" })).toBeVisible();
+  await expect(page.getByTestId("quote-text")).toContainText("A quoted line");
+
+  await page.getByRole("button", { name: "Close post" }).click();
+  await page
+    .getByLabel("Snapshot JSON")
+    .fill(`http://127.0.0.1:43123${readerPath(hostileSnapshot())} read this one`);
+  await page.getByRole("button", { name: "Read snapshot" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Ada M. Example" })).toBeVisible();
+  network.assertQuiet();
+});
+
+test("shows the author's profile from the snapshot in a sheet", async ({ page }) => {
+  const network = guard(page);
+  const avatar = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const base = hostileSnapshot();
+  await page.goto(
+    readerPath({
+      ...base,
+      post: {
+        ...base.post,
+        profile: {
+          avatar,
+          bio: "Distributed systems and coffee. https://example.com/notes",
+          location: "Tokyo",
+          website: "https://x.com/ada_example",
+          joinedAt: "2014-03",
+          followers: 12_400,
+          following: 318,
+          verified: true,
+        },
+      },
+    }),
+  );
+  await expect(page.getByTestId("avatar-image").first()).toHaveAttribute("src", avatar);
+  await expect(page.getByRole("img", { name: "Verified" }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /View profile of Ada M\. Example/ }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toContainText("Distributed systems and coffee.");
+  await expect(sheet).toContainText("Tokyo");
+  await expect(sheet).toContainText("Joined March 2014");
+  await expect(sheet).toContainText("12.4K");
+  await expect(sheet).toContainText("318");
+  await expect(sheet.getByRole("link", { name: /example\.com\/notes/ })).toBeVisible();
+  await expect(sheet.locator("a[href*='x.com']")).toHaveCount(0);
+  await expect(sheet).toContainText("https://x.com/ada_example");
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+
+  await page.getByRole("button", { name: /View profile of Quoted Poet/ }).click();
+  await expect(page.getByRole("dialog")).toContainText("No profile was included");
   network.assertQuiet();
 });

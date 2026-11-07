@@ -9,9 +9,15 @@ export const LIMITS = {
   maxAlt: 1_000,
   maxMedia: 4,
   /** base64url length of the compressed hash token. */
-  maxShareTokenLength: 8_000,
+  maxShareTokenLength: 24_000,
   maxLang: 35,
   maxSourceUrl: 500,
+  maxBio: 500,
+  maxLocation: 100,
+  maxWebsite: 300,
+  /** Length of the avatar data URI, header included. */
+  maxAvatar: 20_000,
+  maxCount: 1e12,
 } as const;
 
 export const FORMAT = "single-post-snapshot" as const;

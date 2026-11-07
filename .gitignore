@@ -42,3 +42,10 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/

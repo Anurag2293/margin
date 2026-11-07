@@ -24,8 +24,8 @@ try {
   process.exit(1);
 }
 const token = zlib.deflateRawSync(input).toString("base64url");
-if (token.length > 8000) {
-  console.error("compressed link is longer than 8000 characters; send the JSON file instead");
+if (token.length > 24000) {
+  console.error("compressed link is longer than 24000 characters; send the JSON file instead");
   process.exit(2);
 }
 process.stdout.write(`${origin}/#s1.${token}\n`);

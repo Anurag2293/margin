@@ -20,10 +20,25 @@ npm run test:e2e
 
 The browser tests use Chromium. The first `npm run test:e2e` needs `npx playwright install chromium`.
 
+## Android app
+
+`android/` is a native Kotlin + Jetpack Compose app for the same snapshots. It has no INTERNET permission, so it cannot make a network request.
+
+- Tapping a reader link in any app opens the post in Margin. Sharing a message that contains a reader link, or a `.json` file, to Margin works too.
+- Tap the author to see their profile in a bottom sheet.
+- Posts you open are kept in a local Recent list. Swipe one away to remove it.
+
+```bash
+ferry adb connect        # once, if adb is not connected
+android/install.sh       # unit tests, signed release build, install, link handling
+```
+
+The release key is `~/.config/margin/release.keystore` (passwords in `keystore.properties` next to it). Do not delete it: a new key means uninstalling the app first, and `public/.well-known/assetlinks.json` lists its fingerprint. Until that file is deployed, `install.sh` turns on link handling for the two Margin hosts over adb.
+
 ## How to read a post
 
-1. Paste snapshot JSON, upload the `.json` file, or open a reader link.
-2. Or press **Show labeled example**. That post is invented. It is marked on the page, and it is not from X.
+1. Paste snapshot JSON or a reader link, upload or drop the `.json` file, or open a reader link. Pasting into the empty box opens the post right away.
+2. Or press **Try the example**. That post is invented. It is marked on the page, and it is not from X.
 
 Pasting `https://x.com/someone/status/123` explains why nothing can be shown. The page does not invent the missing text.
 
@@ -53,7 +68,18 @@ Version 1. The JSON Schema is `schema/single-post-snapshot.v1.json`. The running
     },
     "media": [
       { "kind": "photo", "alt": "Window light on a desk" }
-    ]
+    ],
+    "profile": {
+      "avatar": "data:image/jpeg;base64,/9j/4AAQ...",
+      "bio": "Distributed systems and coffee.",
+      "location": "Tokyo",
+      "website": "https://example.com",
+      "joinedAt": "2014-03",
+      "followers": 12400,
+      "following": 318,
+      "posts": 9001,
+      "verified": true
+    }
   }
 }
 ```
@@ -70,7 +96,22 @@ Version 1. The JSON Schema is `schema/single-post-snapshot.v1.json`. The running
 | `post.sourceUrl` | no | `https://x.com/{handle}/status/{id}` or the `twitter.com` / `mobile.twitter.com` / `/i/web/status/{id}` forms. Query, hash, and `/photo/1` are dropped. Any other address is rejected. |
 | `post.lang` | no | A short language tag such as `en` or `pt-BR`. |
 | `post.quote` | no | Same fields as a post, except it cannot contain another `quote`. |
+| `post.profile` | no | What the author's profile showed when the snapshot was made. Every field is optional; see below. `post.quote.profile` works the same way. |
 | `post.media` | no | At most 4 items. `kind` is `photo`, `video`, `gif`, or `audio`. `alt` is optional text up to 1,000 characters. `url`, `src`, `href`, `source`, `previewUrl`, and `poster` are rejected. |
+
+### Profile
+
+Tapping the author opens their profile. Margin never looks a profile up on X, so it shows only what the snapshot carries.
+
+| Field | Rule |
+| --- | --- |
+| `avatar` | A `data:image/jpeg`, `png`, or `webp` URI in base64, at most 20,000 characters. A remote URL is rejected. A 96×96 JPEG or WebP at about quality 70 is 2–4 KB. |
+| `bio` | Up to 500 characters. Line breaks stay. |
+| `location` | Up to 100 characters. |
+| `website` | An `https://` link, up to 300 characters, without credentials or a port. An X address is shown as text. |
+| `joinedAt` | `YYYY-MM`, `YYYY-MM-DD`, or an ISO-8601 time. Shown as "Joined March 2014". |
+| `followers`, `following`, `posts` | Whole numbers, zero or more. |
+| `verified` | `true` shows a badge. |
 
 The whole JSON file must be at most **48 KB** of UTF-8. Leading and trailing whitespace is removed. NUL and other control characters are stripped. A BOM is ignored.
 
@@ -90,7 +131,7 @@ A reader link carries the snapshot in the URL fragment. The fragment is not sent
 - Python: `zlib.compressobj(wbits=-15)`, then `base64.urlsafe_b64encode(raw).rstrip(b"=")`
 - Browser: `CompressionStream("deflate-raw")`, then base64url
 
-Tokens are not byte-identical across compressors. Readers inflate the token; they do not compare it as a hash of the JSON. The token may be at most **8,000** characters. Past that, send the `.json` file instead. Unpacking stops at 48 KB so a tiny token cannot expand without limit.
+Tokens are not byte-identical across compressors. Readers inflate the token; they do not compare it as a hash of the JSON. The token may be at most **24,000** characters. Past that, send the `.json` file instead. Unpacking stops at 48 KB so a tiny token cannot expand without limit.
 
 From this repo:
 
@@ -107,7 +148,7 @@ Key order does not matter. `https://x.com/...` inside the post text is shown as 
 - No account, cookies, API key, or paid service.
 - No request to X, from the page or from a server, to fill in a missing post.
 - No timeline, recommendations, trending, infinite scroll, notifications, or embeds.
-- No remote image, video, or audio, including from a CDN.
+- No remote image, video, or audio, including from a CDN. A profile picture is shown only when the snapshot embeds it as data.
 - No HTML from the snapshot, and no fetch of a URL the snapshot mentions.
 
 Share links contain the post text. Anyone with the link can read it. The fragment is visible in the browser even though it is not sent with the HTTP request.
