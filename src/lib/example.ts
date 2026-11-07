@@ -9,6 +9,15 @@ export const EXAMPLE_SNAPSHOT: Snapshot = {
     authorName: "Sample Author",
     authorHandle: "sample_author",
     lang: "en",
+    profile: {
+      bio: "An invented author for Margin's example. Writes about quiet software and slow reading.",
+      location: "Nowhere in particular",
+      website: "https://example.com/sample",
+      joinedAt: "2014-03",
+      followers: 12_400,
+      following: 318,
+      verified: true,
+    },
     createdAt: "2026-04-02T16:30:00.000Z",
     text: [
       "This page is for one post at a time.",

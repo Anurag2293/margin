@@ -1,16 +1,16 @@
 "use client";
 
-import { useRef } from "react";
+import { ArrowRight, Sparkles, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { LIMITS, formatBytes } from "@/lib/limits";
+import { cn } from "@/lib/utils";
 
 export function ImportPanel({
   draft,
   error,
   busy,
+  autoFocus = false,
   onDraft,
   onRead,
   onFile,
@@ -19,68 +19,108 @@ export function ImportPanel({
   draft: string;
   error: string | null;
   busy: boolean;
+  autoFocus?: boolean;
   onDraft: (value: string) => void;
-  onRead: () => void;
+  onRead: (text?: string) => void;
   onFile: (file: File) => void;
   onExample: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [mac, setMac] = useState(true);
+
+  useEffect(() => {
+    setMac(/Mac|iPhone|iPad/.test(navigator.platform));
+    if (autoFocus) textRef.current?.focus();
+  }, [autoFocus]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Add a snapshot</CardTitle>
-        <CardDescription>
-          Paste JSON, upload a file, or open a reader link. Limit {formatBytes(LIMITS.maxBytes)}.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="snapshot-json">Snapshot JSON</Label>
-          <Textarea
-            id="snapshot-json"
-            value={draft}
-            onChange={(event) => onDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-                event.preventDefault();
-                onRead();
-              }
-            }}
-            spellCheck={false}
-            autoComplete="off"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "snapshot-error" : undefined}
-            placeholder='{"format":"single-post-snapshot","version":1,"post":{...}}'
-            className="min-h-36 max-h-64 text-base md:text-base"
-          />
-        </div>
-        {error ? (
-          <p id="snapshot-error" role="alert" className="text-sm leading-relaxed text-destructive">
-            {error}
-          </p>
-        ) : null}
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Button type="button" className="min-h-11 px-3.5" disabled={busy} onClick={onRead}>
-            Read snapshot
-          </Button>
+    <section aria-label="Add a snapshot" className="flex flex-col gap-2">
+      <div
+        className={cn(
+          "paper rounded-2xl transition-shadow focus-within:ring-3 focus-within:ring-ring/30",
+          dragging && "ring-3 ring-ring/50",
+          error && "ring-3 ring-destructive/25",
+        )}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes("Files")) return;
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(event) => {
+          const file = event.dataTransfer.files?.[0];
+          if (!file) return;
+          event.preventDefault();
+          setDragging(false);
+          onFile(file);
+        }}
+      >
+        <label htmlFor="snapshot-json" className="sr-only">
+          Snapshot JSON
+        </label>
+        <textarea
+          id="snapshot-json"
+          ref={textRef}
+          value={draft}
+          onChange={(event) => onDraft(event.target.value)}
+          onPaste={(event) => {
+            const pasted = event.clipboardData.getData("text");
+            if (draft.trim() || !pasted.trim()) return;
+            event.preventDefault();
+            onDraft(pasted);
+            onRead(pasted);
+          }}
+          onKeyDown={(event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+              event.preventDefault();
+              onRead();
+            }
+          }}
+          spellCheck={false}
+          autoComplete="off"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "snapshot-error" : "snapshot-hint"}
+          placeholder="Paste snapshot JSON or a reader link"
+          className="block max-h-72 min-h-32 w-full resize-none bg-transparent px-5 pt-4 pb-2 font-mono text-[0.9375rem] leading-relaxed text-foreground outline-none [field-sizing:content] placeholder:font-sans placeholder:text-base placeholder:text-muted-foreground"
+        />
+        <div className="flex flex-wrap items-center gap-1 px-2 pb-2">
           <Button
             type="button"
-            variant="outline"
-            className="min-h-11 px-3.5"
+            variant="ghost"
+            className="h-10 gap-2 px-3 text-muted-foreground hover:text-foreground"
             disabled={busy}
+            aria-label="Upload JSON"
+            title="Upload JSON"
             onClick={() => fileRef.current?.click()}
           >
-            Upload JSON
+            <Upload />
+            <span className="max-sm:hidden">Upload JSON</span>
           </Button>
           <Button
             type="button"
-            variant="secondary"
-            className="min-h-11 px-3.5"
+            variant="ghost"
+            className="h-10 gap-2 px-3 text-muted-foreground hover:text-foreground"
             disabled={busy}
+            aria-label="Try the example"
             onClick={onExample}
           >
-            Show labeled example
+            <Sparkles />
+            <span className="sm:hidden">Example</span>
+            <span className="max-sm:hidden">Try the example</span>
+          </Button>
+          <Button
+            type="button"
+            className="ml-auto h-10 gap-2 rounded-xl px-4"
+            disabled={busy}
+            onClick={() => onRead()}
+          >
+            Read snapshot
+            <span className="kbd max-sm:hidden" aria-hidden="true">
+              {mac ? "⌘" : "Ctrl"} ↵
+            </span>
+            <ArrowRight className="sm:hidden" />
           </Button>
           <input
             ref={fileRef}
@@ -95,7 +135,16 @@ export function ImportPanel({
             }}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      {error ? (
+        <p id="snapshot-error" role="alert" className="px-1 text-sm leading-relaxed text-destructive">
+          {error}
+        </p>
+      ) : (
+        <p id="snapshot-hint" className="px-1 text-sm text-muted-foreground">
+          JSON up to {formatBytes(LIMITS.maxBytes)}. You can also drop a .json file here.
+        </p>
+      )}
+    </section>
   );
 }

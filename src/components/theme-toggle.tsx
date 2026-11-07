@@ -18,7 +18,7 @@ export function ThemeToggle() {
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
       setResolved(dark ? "dark" : "light");
       const themeColor = document.querySelector('meta[name="theme-color"]');
-      themeColor?.setAttribute("content", dark ? "#1c1916" : "#f3efe4");
+      themeColor?.setAttribute("content", dark ? "#1a1715" : "#f4f1eb");
     };
     apply(stored);
     const onChange = () => {
@@ -41,9 +41,9 @@ export function ThemeToggle() {
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="ghost"
       size="icon"
-      className="size-11"
+      className="size-10"
       aria-label={label}
       onClick={toggle}
     >

@@ -148,3 +148,76 @@ describe("classifyImport", () => {
     expect(classifyImport("  ")).toMatchObject({ type: "invalid" });
   });
 });
+
+describe("profile", () => {
+  const avatar = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==";
+
+  it("keeps a full profile on the post and the quote", () => {
+    const parsed = parseSnapshot(
+      snapshot({
+        profile: {
+          avatar,
+          bio: "Distributed systems.\nCoffee.",
+          location: "Tokyo",
+          website: "https://example.com/ada",
+          joinedAt: "2014-03",
+          followers: 12_400,
+          following: 318,
+          posts: 9_001,
+          verified: true,
+          tracking: "drop me",
+        },
+        quote: {
+          authorName: "Quoted Poet",
+          authorHandle: "poet_example",
+          text: "Hi",
+          profile: { bio: "Poet", joinedAt: "2020-01-02" },
+        },
+      }),
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.snapshot.post.profile).toEqual({
+      avatar,
+      bio: "Distributed systems.\nCoffee.",
+      location: "Tokyo",
+      website: "https://example.com/ada",
+      joinedAt: "2014-03",
+      followers: 12_400,
+      following: 318,
+      posts: 9_001,
+      verified: true,
+    });
+    expect(parsed.snapshot.post.quote?.profile).toEqual({ bio: "Poet", joinedAt: "2020-01-02" });
+    expect(canonicalJson(parsed.snapshot)).toContain('"followers":12400');
+    expect(canonicalJson(parsed.snapshot)).not.toContain("tracking");
+  });
+
+  it("drops an empty profile and a false verified flag", () => {
+    const parsed = parseSnapshot(snapshot({ profile: { bio: "  ", verified: false } }));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.snapshot.post.profile).toBeUndefined();
+  });
+
+  it.each([
+    [{ avatar: "https://pbs.twimg.com/profile_images/1/a.jpg" }, "avatar"],
+    [{ avatar: "data:image/svg+xml;base64,PHN2Zz4=" }, "avatar"],
+    [{ avatar: `data:image/png;base64,${"A".repeat(LIMITS.maxAvatar)}` }, "avatar"],
+    [{ website: "javascript:alert(1)" }, "website"],
+    [{ website: "http://example.com" }, "website"],
+    [{ website: "https://user:pw@example.com" }, "website"],
+    [{ joinedAt: "March 2014" }, "joinedAt"],
+    [{ followers: -1 }, "followers"],
+    [{ followers: 1.5 }, "followers"],
+    [{ following: "318" }, "following"],
+    [{ verified: "yes" }, "verified"],
+    [{ bio: "a".repeat(LIMITS.maxBio + 1) }, "bio"],
+    ["nope", "profile"],
+  ])("rejects a bad profile %#", (profile, field) => {
+    const parsed = parseSnapshot(snapshot({ profile }));
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.error).toContain(field);
+  });
+});

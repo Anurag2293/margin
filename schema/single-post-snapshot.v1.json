@@ -4,65 +4,189 @@
   "title": "Single post snapshot",
   "description": "One public post, carried in full so a reader can show it without contacting X. Unknown properties are ignored except URL fields on media, which are rejected.",
   "type": "object",
-  "required": ["format", "version", "post"],
+  "required": [
+    "format",
+    "version",
+    "post"
+  ],
   "properties": {
-    "format": { "const": "single-post-snapshot" },
-    "version": { "const": 1 },
+    "format": {
+      "const": "single-post-snapshot"
+    },
+    "version": {
+      "const": 1
+    },
     "example": {
       "type": "boolean",
       "description": "When true, the reader labels the post as an invented example."
     },
-    "post": { "$ref": "#/$defs/post" }
+    "post": {
+      "$ref": "#/$defs/post"
+    }
   },
   "$defs": {
     "post": {
       "type": "object",
-      "required": ["authorName", "authorHandle", "text"],
+      "required": [
+        "authorName",
+        "authorHandle",
+        "text"
+      ],
       "properties": {
-        "authorName": { "type": "string", "minLength": 1, "maxLength": 50 },
-        "authorHandle": { "type": "string", "pattern": "^@?[A-Za-z0-9_]{1,15}$" },
-        "text": { "type": "string", "maxLength": 12000 },
+        "authorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "authorHandle": {
+          "type": "string",
+          "pattern": "^@?[A-Za-z0-9_]{1,15}$"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 12000
+        },
         "createdAt": {
           "type": "string",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?(Z|[+-]\\d{2}:\\d{2})$"
         },
-        "sourceUrl": { "type": "string", "maxLength": 500 },
-        "lang": { "type": "string", "maxLength": 35 },
-        "quote": { "$ref": "#/$defs/quote" },
+        "sourceUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "lang": {
+          "type": "string",
+          "maxLength": 35
+        },
+        "quote": {
+          "$ref": "#/$defs/quote"
+        },
         "media": {
           "type": "array",
           "maxItems": 4,
-          "items": { "$ref": "#/$defs/media" }
+          "items": {
+            "$ref": "#/$defs/media"
+          }
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
         }
       }
     },
     "quote": {
       "type": "object",
-      "required": ["authorName", "authorHandle", "text"],
+      "required": [
+        "authorName",
+        "authorHandle",
+        "text"
+      ],
       "properties": {
-        "authorName": { "type": "string", "minLength": 1, "maxLength": 50 },
-        "authorHandle": { "type": "string", "pattern": "^@?[A-Za-z0-9_]{1,15}$" },
-        "text": { "type": "string", "maxLength": 12000 },
-        "createdAt": { "type": "string" },
-        "sourceUrl": { "type": "string", "maxLength": 500 },
-        "lang": { "type": "string", "maxLength": 35 },
+        "authorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "authorHandle": {
+          "type": "string",
+          "pattern": "^@?[A-Za-z0-9_]{1,15}$"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 12000
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "lang": {
+          "type": "string",
+          "maxLength": 35
+        },
         "media": {
           "type": "array",
           "maxItems": 4,
-          "items": { "$ref": "#/$defs/media" }
+          "items": {
+            "$ref": "#/$defs/media"
+          }
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
         }
       },
-      "not": { "required": ["quote"] }
+      "not": {
+        "required": [
+          "quote"
+        ]
+      }
     },
     "media": {
       "type": "object",
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
-        "kind": { "enum": ["photo", "video", "gif", "audio"] },
-        "alt": { "type": "string", "maxLength": 1000 },
+        "kind": {
+          "enum": [
+            "photo",
+            "video",
+            "gif",
+            "audio"
+          ]
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 1000
+        },
         "url": false,
         "src": false,
         "href": false
+      }
+    },
+    "profile": {
+      "type": "object",
+      "description": "What the author's profile showed when the snapshot was made. Margin never looks it up.",
+      "properties": {
+        "avatar": {
+          "type": "string",
+          "maxLength": 20000,
+          "pattern": "^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$",
+          "description": "The profile picture embedded as a data URI. Keep it small: 96x96 JPEG or WebP at about quality 70 is 2-4 KB."
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "website": {
+          "type": "string",
+          "maxLength": 300,
+          "pattern": "^https://"
+        },
+        "joinedAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}(-\\d{2}(T.*)?)?$"
+        },
+        "followers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "following": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "posts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verified": {
+          "type": "boolean"
+        }
       }
     }
   }

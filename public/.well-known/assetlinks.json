@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.anurag.margin",
+      "sha256_cert_fingerprints": [
+        "F2:6E:F8:14:65:AB:9D:51:7D:D2:34:44:C5:44:3F:82:1F:2D:E5:BA:68:C9:58:63:0A:E9:CC:3F:F3:A4:4A:D3"
+      ]
+    }
+  }
+]

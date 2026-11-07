@@ -36,7 +36,7 @@ export function linkify(text: string): TextPart[] {
   return parts;
 }
 
-function classify(raw: string): TextPart {
+export function classify(raw: string): TextPart {
   if (raw.length > 2_000 || /[@\\\s]/.test(raw)) {
     return { type: "text", value: raw };
   }
