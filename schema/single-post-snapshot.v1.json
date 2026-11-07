@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "single-post-snapshot.v1.json",
+  "title": "Single post snapshot",
+  "description": "One public post, carried in full so a reader can show it without contacting X. Unknown properties are ignored except URL fields on media, which are rejected.",
+  "type": "object",
+  "required": ["format", "version", "post"],
+  "properties": {
+    "format": { "const": "single-post-snapshot" },
+    "version": { "const": 1 },
+    "example": {
+      "type": "boolean",
+      "description": "When true, the reader labels the post as an invented example."
+    },
+    "post": { "$ref": "#/$defs/post" }
+  },
+  "$defs": {
+    "post": {
+      "type": "object",
+      "required": ["authorName", "authorHandle", "text"],
+      "properties": {
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "authorHandle": { "type": "string", "pattern": "^@?[A-Za-z0-9_]{1,15}$" },
+        "text": { "type": "string", "maxLength": 12000 },
+        "createdAt": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?(Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "sourceUrl": { "type": "string", "maxLength": 500 },
+        "lang": { "type": "string", "maxLength": 35 },
+        "quote": { "$ref": "#/$defs/quote" },
+        "media": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/media" }
+        }
+      }
+    },
+    "quote": {
+      "type": "object",
+      "required": ["authorName", "authorHandle", "text"],
+      "properties": {
+        "authorName": { "type": "string", "minLength": 1, "maxLength": 50 },
+        "authorHandle": { "type": "string", "pattern": "^@?[A-Za-z0-9_]{1,15}$" },
+        "text": { "type": "string", "maxLength": 12000 },
+        "createdAt": { "type": "string" },
+        "sourceUrl": { "type": "string", "maxLength": 500 },
+        "lang": { "type": "string", "maxLength": 35 },
+        "media": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/media" }
+        }
+      },
+      "not": { "required": ["quote"] }
+    },
+    "media": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["photo", "video", "gif", "audio"] },
+        "alt": { "type": "string", "maxLength": 1000 },
+        "url": false,
+        "src": false,
+        "href": false
+      }
+    }
+  }
+}
