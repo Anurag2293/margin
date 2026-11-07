@@ -46,7 +46,7 @@ jobs:
           MARGIN_KEYSTORE_PASSWORD: ${{ secrets.MARGIN_KEYSTORE_PASSWORD }}
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          ./gradlew --no-daemon testDebugUnitTest assembleRelease --console=plain
+          ./gradlew --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" testDebugUnitTest assembleRelease --console=plain
 
       - name: Check the signer and name the APK
         id: apk
