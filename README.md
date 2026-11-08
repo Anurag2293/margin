@@ -28,12 +28,16 @@ The browser tests use Chromium. The first `npm run test:e2e` needs `npx playwrig
 - Tap the author to see their profile in a bottom sheet.
 - Posts you open are kept in a local Recent list. Swipe one away to remove it.
 
+On the phone, Margin updates through Obtainium: every push to `main` that touches `android/` publishes a GitHub Release tagged `android-v<versionName>` with the signed APK (`.github/workflows/android-release.yml`). A pull request builds the same APK as a workflow artifact without publishing. `versionCode` is the HEAD commit's time in seconds since 2026-01-01 UTC, the same for CI and local builds, so a later merge always outranks an earlier build.
+
+For a quick local install instead:
+
 ```bash
 ferry adb connect        # once, if adb is not connected
 android/install.sh       # unit tests, signed release build, install, link handling
 ```
 
-The release key is `~/.config/margin/release.keystore` (passwords in `keystore.properties` next to it). Do not delete it: a new key means uninstalling the app first, and `public/.well-known/assetlinks.json` lists its fingerprint. Until that file is deployed, `install.sh` turns on link handling for the two Margin hosts over adb.
+The release key is `~/.config/margin/release.keystore` (passwords in `keystore.properties` next to it). CI gets the same key from the repository secrets `MARGIN_KEYSTORE_B64` and `MARGIN_KEYSTORE_PASSWORD`, and refuses to publish an APK signed with any other key. Do not delete it: a new key means uninstalling the app first, and `public/.well-known/assetlinks.json` lists its fingerprint. Until that file is deployed, `install.sh` turns on link handling for the two Margin hosts over adb.
 
 ## How to read a post
 

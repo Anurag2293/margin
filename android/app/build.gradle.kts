@@ -6,10 +6,27 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// CI passes the keystore in from repository secrets; a local build reads ~/.config/margin.
 val signing = Properties().apply {
-    val file = File(System.getProperty("user.home"), ".config/margin/keystore.properties")
-    if (file.exists()) file.inputStream().use { load(it) }
+    val ciStore = System.getenv("MARGIN_KEYSTORE_FILE")
+    if (!ciStore.isNullOrEmpty()) {
+        val password = System.getenv("MARGIN_KEYSTORE_PASSWORD").orEmpty()
+        setProperty("storeFile", ciStore)
+        setProperty("storePassword", password)
+        setProperty("keyAlias", "margin")
+        setProperty("keyPassword", password)
+    } else {
+        val file = File(System.getProperty("user.home"), ".config/margin/keystore.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
 }
+
+fun git(vararg args: String): String =
+    providers.exec { commandLine("git", *args) }.standardOutput.asText.get().trim()
+
+// One versionCode source for CI and local builds: seconds from 2026-01-01 UTC to
+// the HEAD commit's committer time, so a later merge always outranks an earlier build.
+val buildNumber = (git("log", "-1", "--format=%ct").toLong() - 1_767_225_600L).toInt()
 
 android {
     namespace = "com.anurag.margin"
@@ -19,8 +36,8 @@ android {
         applicationId = "com.anurag.margin"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = buildNumber
+        versionName = "1.$buildNumber"
     }
 
     signingConfigs {
