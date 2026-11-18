@@ -30,7 +30,11 @@ export function ThemeToggle() {
 
   function toggle() {
     const next = resolved === "dark" ? "light" : "dark";
-    localStorage.setItem("margin-theme", next);
+    try {
+      localStorage.setItem("margin-theme", next);
+    } catch {
+      /* private mode */
+    }
     document.documentElement.classList.toggle("dark", next === "dark");
     document.documentElement.style.colorScheme = next;
     setResolved(next);
