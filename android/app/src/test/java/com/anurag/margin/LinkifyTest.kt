@@ -155,6 +155,25 @@ class LinkifyTest {
     }
 
     @Test
+    fun opensALinkWithTheSchemeAndHostInLowerCaseAsTheWebDoes() {
+        assertEquals(
+            listOf(TextPart.Plain("Go "), TextPart.Link("HTTPS://Example.COM/A?B=C#D", "https://example.com/A?B=C#D")),
+            Linkify.split("Go HTTPS://Example.COM/A?B=C#D"),
+        )
+        assertEquals("https://example.com", (Linkify.classify("Https://EXAMPLE.com") as TextPart.Link).href)
+        Gen.forAll(500, seed = 20, gen = { random ->
+            val url = Gen.webUrl(random).replaceFirst("http://", "https://")
+            url.map { if (random.nextBoolean()) it.uppercaseChar() else it }.joinToString("")
+        }) { text ->
+            for (part in Linkify.split(text)) {
+                if (part !is TextPart.Link) continue
+                val authority = part.value.substring(8).takeWhile { it !in "/?#" }
+                assertEquals("https://" + authority.lowercase() + part.value.substring(8 + authority.length), part.href)
+            }
+        }
+    }
+
+    @Test
     fun handlesTensOfThousandsOfClosingBracketsInLinearTime() {
         Linkify.split("https://example.com/))")
         for ((tail, count) in listOf(")" to 11_980, "]" to 11_980, ")" to 40_000, "]" to 40_000)) {

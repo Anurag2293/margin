@@ -128,10 +128,10 @@ object Linkify {
     fun classify(raw: String): TextPart {
         if (raw.length > 2_000) return TextPart.Plain(raw)
         val host = Urls.plainHttpsHost(raw) ?: return TextPart.Plain(raw)
-        val written = raw.substring("https://".length).takeWhile { it !in "/?#" }.removeSuffix(".").lowercase()
-        if (host != written) return TextPart.Plain(raw)
+        val authority = raw.substring("https://".length).takeWhile { it !in "/?#" }
+        if (host != authority.removeSuffix(".").lowercase()) return TextPart.Plain(raw)
         if (Urls.isBlockedHost(host)) return TextPart.Blocked(raw)
-        return TextPart.Link(raw, raw)
+        return TextPart.Link(raw, "https://" + authority.lowercase() + raw.substring("https://".length + authority.length))
     }
 
     private fun trimTrailing(raw: String): Pair<String, String> {
