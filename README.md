@@ -37,6 +37,8 @@ ferry adb connect        # once, if adb is not connected
 android/install.sh       # unit tests, signed release build, install, link handling
 ```
 
+To run only the Android unit tests (no phone needed), run `cd android && ./gradlew testDebugUnitTest --offline`. They port the web suite's linkify, URL, snapshot, and share-link cases to Kotlin, so a change to parsing on one side should be mirrored on the other.
+
 The release key is `~/.config/margin/release.keystore` (passwords in `keystore.properties` next to it). CI gets the same key from the repository secrets `MARGIN_KEYSTORE_B64` and `MARGIN_KEYSTORE_PASSWORD`, and refuses to publish an APK signed with any other key. Do not delete it: a new key means uninstalling the app first, and `public/.well-known/assetlinks.json` lists its fingerprint. Until that file is deployed, `install.sh` turns on link handling for the two Margin hosts over adb.
 
 ## How to read a post
