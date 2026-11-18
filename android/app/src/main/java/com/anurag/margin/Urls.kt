@@ -102,20 +102,16 @@ object Linkify {
     }
 
     private fun trimTrailing(raw: String): Pair<String, String> {
-        var url = raw
-        var rest = ""
-        Regex("[.,;:!?]+$").find(url)?.let {
-            rest = it.value
-            url = url.dropLast(it.value.length)
+        var end = raw.length
+        while (end > 0 && raw[end - 1] in ".,;:!?") end -= 1
+        for ((open, close) in listOf('(' to ')', '[' to ']')) {
+            val opens = raw.count { it == open }
+            var closes = raw.count { it == close }
+            while (end > 0 && raw[end - 1] == close && opens < closes) {
+                closes -= 1
+                end -= 1
+            }
         }
-        while (url.endsWith(")") && url.count { it == '(' } < url.count { it == ')' }) {
-            rest = ")$rest"
-            url = url.dropLast(1)
-        }
-        while (url.endsWith("]") && url.count { it == '[' } < url.count { it == ']' }) {
-            rest = "]$rest"
-            url = url.dropLast(1)
-        }
-        return url to rest
+        return raw.substring(0, end) to raw.substring(end)
     }
 }

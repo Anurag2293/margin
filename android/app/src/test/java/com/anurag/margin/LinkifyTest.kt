@@ -105,4 +105,17 @@ class LinkifyTest {
         assertEquals(listOf("https://example.com/x"), hrefs("https://example.com/x?!."))
         assertEquals(listOf("Go (", "https://example.com/a", ")."), values("Go (https://example.com/a)."))
     }
+
+    @Test
+    fun handlesTensOfThousandsOfClosingBracketsInLinearTime() {
+        Linkify.split("https://example.com/))")
+        for ((tail, count) in listOf(")" to 11_980, "]" to 11_980, ")" to 40_000, "]" to 40_000)) {
+            val text = "https://example.com/${tail.repeat(count)}"
+            val started = System.nanoTime()
+            val parts = Linkify.split(text)
+            val elapsedMs = (System.nanoTime() - started) / 1_000_000
+            assertEquals(text, parts.joinToString("") { it.value })
+            assertTrue("took $elapsedMs ms", elapsedMs < 100)
+        }
+    }
 }
