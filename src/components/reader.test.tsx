@@ -195,6 +195,30 @@ describe("Reader", () => {
     expect(location.hash).toBe("");
   });
 
+  it("does not stay busy when a read is replaced by another action", async () => {
+    render(<Reader />);
+    paste(json({ text: "Slow read" }));
+    fireEvent.click(screen.getByRole("button", { name: "Margin" }));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(screen.queryByRole("article")).toBeNull();
+    for (const name of ["Upload JSON", "Try the example", /Read snapshot/]) {
+      expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled, String(name)).toBe(false);
+    }
+  });
+
+  it("does not stay busy when a hash change replaces a read", async () => {
+    render(<Reader />);
+    paste(json({ text: "Older" }));
+    await setHash(`#s1.${token(json({ text: "Newer" }))}`);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    fireEvent.click(screen.getByRole("button", { name: "New" }));
+    expect((screen.getByRole("button", { name: /Read snapshot/ }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("shows only the latest of two overlapping reads", async () => {
     render(<Reader />);
     paste(json({ text: "Older" }));

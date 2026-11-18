@@ -26,6 +26,7 @@ export function Reader() {
   const [busy, setBusy] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const generation = useRef(0);
+  const latestRead = useRef(0);
 
   const loadHash = useCallback(async () => {
     const ticket = ++generation.current;
@@ -120,6 +121,7 @@ export function Reader() {
 
   async function readText(text: string) {
     const ticket = ++generation.current;
+    latestRead.current = ticket;
     setBusy(true);
     try {
       const token = readerLinkToken(text);
@@ -146,7 +148,7 @@ export function Reader() {
         setShowImport(true);
       }
     } finally {
-      if (ticket === generation.current) setBusy(false);
+      if (ticket === latestRead.current) setBusy(false);
     }
   }
 
