@@ -55,7 +55,7 @@ export function Reader() {
         setShowImport(true);
         return;
       }
-      await present(decoded.snapshot, { replaceHash: true, ticket });
+      await present(decoded.snapshot, { replaceHash: false, ticket });
     } catch {
       if (ticket !== generation.current) return;
       setPhase({ kind: "invalid", message: "This reader link could not be opened." });

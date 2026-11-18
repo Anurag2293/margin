@@ -195,6 +195,31 @@ describe("Reader", () => {
     expect(location.hash).toBe("");
   });
 
+  it("keeps a reader link it can open even when its own encoding would be too long", async () => {
+    let seed = 5;
+    const pool = Array.from({ length: 9_312 }, () => {
+      seed = (seed * 48271) % 2147483647;
+      return String.fromCodePoint(0x4e00 + (seed % 3_000));
+    });
+    const producer = JSON.stringify({
+      post: { text: pool.join(""), authorHandle: "a", authorName: "A" },
+      version: 1,
+      format: "single-post-snapshot",
+    });
+    const link = zlib.deflateRawSync(Buffer.from(producer), { level: 9 }).toString("base64url");
+    expect(link.length).toBeLessThanOrEqual(LIMITS.maxShareTokenLength);
+    const canonical = json({ authorName: "A", authorHandle: "a", text: pool.join("") });
+    const ours = zlib.deflateRawSync(Buffer.from(canonical)).toString("base64url");
+    expect(ours.length).toBeGreaterThan(LIMITS.maxShareTokenLength);
+
+    history.replaceState(null, "", `/#s1.${link}`);
+    render(<Reader />);
+    expect(await author("A")).toBeTruthy();
+    expect(location.hash).toBe(`#s1.${link}`);
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("does not stay busy when a read is replaced by another action", async () => {
     render(<Reader />);
     paste(json({ text: "Slow read" }));
