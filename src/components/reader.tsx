@@ -26,6 +26,7 @@ export function Reader() {
   const [busy, setBusy] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const generation = useRef(0);
+  const latestRead = useRef(0);
 
   const loadHash = useCallback(async () => {
     const ticket = ++generation.current;
@@ -54,7 +55,7 @@ export function Reader() {
         setShowImport(true);
         return;
       }
-      await present(decoded.snapshot, { replaceHash: true, ticket });
+      await present(decoded.snapshot, { replaceHash: false, ticket });
     } catch {
       if (ticket !== generation.current) return;
       setPhase({ kind: "invalid", message: "This reader link could not be opened." });
@@ -120,6 +121,7 @@ export function Reader() {
 
   async function readText(text: string) {
     const ticket = ++generation.current;
+    latestRead.current = ticket;
     setBusy(true);
     try {
       const token = readerLinkToken(text);
@@ -146,7 +148,7 @@ export function Reader() {
         setShowImport(true);
       }
     } finally {
-      if (ticket === generation.current) setBusy(false);
+      if (ticket === latestRead.current) setBusy(false);
     }
   }
 
@@ -197,7 +199,14 @@ export function Reader() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <a href="#content" className="skip-link">
+      <a
+        href="#content"
+        className="skip-link"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("content")?.focus();
+        }}
+      >
         Skip to content
       </a>
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
@@ -231,7 +240,8 @@ export function Reader() {
 
       <main
         id="content"
-        className="mx-auto flex w-full max-w-2xl min-w-0 flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-14"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-2xl min-w-0 flex-1 flex-col gap-6 px-4 py-8 outline-none sm:px-6 sm:py-14"
       >
         {phase.kind === "post" ? (
           <>
