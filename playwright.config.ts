@@ -19,7 +19,18 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testMatch: "reader.spec.ts",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "laptop",
+      testMatch: "flows.spec.ts",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 768 } },
+    },
+    {
+      name: "phone",
+      testMatch: "flows.spec.ts",
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });
