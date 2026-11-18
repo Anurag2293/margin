@@ -82,13 +82,14 @@ function trimTrailing(raw: string): { url: string; rest: string } {
     url = url.slice(0, -punctuation[0].length);
   }
 
-  while (url.endsWith(")") && count(url, "(") < count(url, ")")) {
-    rest = `)${rest}`;
-    url = url.slice(0, -1);
-  }
-  while (url.endsWith("]") && count(url, "[") < count(url, "]")) {
-    rest = `]${rest}`;
-    url = url.slice(0, -1);
+  for (const [open, close] of [["(", ")"], ["[", "]"]]) {
+    const opens = count(url, open);
+    let closes = count(url, close);
+    while (url.endsWith(close) && opens < closes) {
+      rest = `${close}${rest}`;
+      url = url.slice(0, -1);
+      closes -= 1;
+    }
   }
 
   return { url, rest };

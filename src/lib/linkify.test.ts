@@ -126,4 +126,14 @@ describe("linkify properties", () => {
     expect(linkify("https://x.com。evil.example/")[0].type).not.toBe("link");
   });
 
+  it("handles 12,000 closing brackets in linear time", () => {
+    for (const tail of [")", "]"]) {
+      const text = `https://example.com/${tail.repeat(11_980)}`;
+      const started = performance.now();
+      const parts = linkify(text);
+      const elapsed = performance.now() - started;
+      expect(parts.map((part) => part.value).join("")).toBe(text);
+      expect(elapsed).toBeLessThan(100);
+    }
+  });
 });
