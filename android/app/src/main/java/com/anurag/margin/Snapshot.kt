@@ -309,9 +309,27 @@ fun parseJoined(value: String): LocalDate? = try {
 }
 
 object SnapshotJson {
-    fun canonical(snapshot: Snapshot): String = toJson(snapshot).toString()
+    fun canonical(snapshot: Snapshot): String = escapeLoneSurrogates(toJson(snapshot).toString())
 
-    fun pretty(snapshot: Snapshot): String = toJson(snapshot).toString(2)
+    fun pretty(snapshot: Snapshot): String = escapeLoneSurrogates(toJson(snapshot).toString(2))
+
+    /** org.json writes lone surrogates raw, and UTF-8 turns them into "?". JSON.stringify escapes them. */
+    private fun escapeLoneSurrogates(json: String): String {
+        if (json.none { it.isSurrogate() }) return json
+        return buildString(json.length) {
+            var index = 0
+            while (index < json.length) {
+                val char = json[index]
+                if (char.isHighSurrogate() && index + 1 < json.length && json[index + 1].isLowSurrogate()) {
+                    append(char).append(json[index + 1])
+                    index += 2
+                    continue
+                }
+                if (char.isSurrogate()) append("\\u%04x".format(char.code)) else append(char)
+                index += 1
+            }
+        }
+    }
 
     private fun toJson(snapshot: Snapshot): JSONObject = JSONObject().apply {
         put("format", Limits.FORMAT)

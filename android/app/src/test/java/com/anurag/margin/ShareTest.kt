@@ -36,6 +36,33 @@ class ShareTest {
     }
 
     @Test
+    fun decodesEveryLinkedSnapshotBackToTheSameSnapshot() {
+        Gen.forAll(150, seed = 13, gen = ::accepted) { snapshot ->
+            val link = Share.link(snapshot)!!
+            val token = Share.tokenFromLink(link)!!
+            assertTrue(token.length <= Limits.MAX_TOKEN)
+            assertTrue(Regex("^[A-Za-z0-9_-]+$").matches(token))
+            assertEquals(ParseResult.Ok(snapshot), Share.decode(token))
+        }
+    }
+
+    @Test
+    fun readsTokensFromOtherRawDeflateProducersAtAnyLevel() {
+        Gen.forAll(60, seed = 14, gen = { random -> accepted(random) to random.nextInt(0, 10) }) { (snapshot, level) ->
+            assertEquals(ParseResult.Ok(snapshot), Share.decode(deflate(SnapshotJson.canonical(snapshot), level)))
+        }
+    }
+
+    @Test
+    fun keepsLoneSurrogatesThroughJsonAndReaderLinks() {
+        val snapshot = Snapshot(Post(authorName = "A", authorHandle = "a", text = "a\uD800b\uDFFFc 🌳 \uDBFF"))
+        val json = SnapshotJson.canonical(snapshot)
+        assertTrue(json, json.contains("a\\ud800b\\udfffc 🌳 \\udbff"))
+        assertEquals(ParseResult.Ok(snapshot), SnapshotParser.parse(SnapshotJson.pretty(snapshot)))
+        assertEquals(ParseResult.Ok(snapshot), Share.decode(Share.tokenFromLink(Share.link(snapshot)!!)!!))
+    }
+
+    @Test
     fun readsATokenWithExtraJsonWhitespaceAndUnknownFields() {
         val pretty = """
             {
