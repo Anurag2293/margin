@@ -7,7 +7,7 @@ import { PostText } from "@/components/post-text";
 import { ProfileChevron, ProfileSheet, ProfileTrigger, VerifiedBadge } from "@/components/profile-sheet";
 import { SourceAction } from "@/components/source-action";
 import { buttonVariants } from "@/components/ui/button";
-import { prettyJson, type Media, type Quote, type Snapshot } from "@/lib/snapshot";
+import { exportJson, type Media, type Quote, type Snapshot } from "@/lib/snapshot";
 
 const MEDIA: Record<Media["kind"], { label: string; Icon: ComponentType<{ className?: string }> }> = {
   photo: { label: "Photo", Icon: ImageOff },
@@ -51,7 +51,7 @@ export function PostView({
   }
 
   function download() {
-    const blob = new Blob([prettyJson(snapshot)], { type: "application/json" });
+    const blob = new Blob([exportJson(snapshot)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;

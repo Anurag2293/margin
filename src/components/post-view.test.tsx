@@ -5,6 +5,7 @@ import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { PostView } from "@/components/post-view";
 import { EXAMPLE_SNAPSHOT } from "@/lib/example";
+import { LIMITS } from "@/lib/limits";
 import { parseSnapshot, type Snapshot } from "@/lib/snapshot";
 
 const SHARE = "https://margin.test/#s1.abc";
@@ -147,4 +148,24 @@ describe("PostView", () => {
     expect(revoke).toHaveBeenCalledWith("blob:margin-test");
   });
 
+  it("downloads a file Margin can open again, even for a snapshot at the size limit", async () => {
+    const base = post({
+      text: "日".repeat(12_000),
+      media: Array.from({ length: 4 }, () => ({ kind: "photo" as const, alt: "a".repeat(1_000) })),
+      quote: { authorName: "Q", authorHandle: "q", text: "" },
+    });
+    base.post.quote!.text = "b".repeat(LIMITS.maxBytes - new TextEncoder().encode(JSON.stringify(base)).byteLength);
+    const input = JSON.stringify(base);
+    expect(new TextEncoder().encode(input).byteLength).toBe(LIMITS.maxBytes);
+    const accepted = parseSnapshot(input);
+    expect(accepted.ok).toBe(true);
+    if (!accepted.ok) return;
+
+    const { blobs } = captureDownload();
+    view(accepted.snapshot);
+    fireEvent.click(screen.getByRole("button", { name: "Download JSON" }));
+    const file = blobs[0];
+    expect(file.size).toBeLessThanOrEqual(LIMITS.maxBytes);
+    expect(parseSnapshot(await file.text())).toEqual(accepted);
+  });
 });

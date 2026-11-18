@@ -105,6 +105,13 @@ export function prettyJson(snapshot: Snapshot): string {
   return JSON.stringify(toCanonical(snapshot), null, 2);
 }
 
+/** The JSON file Margin hands out: pretty when that still fits the import limit, compact otherwise. */
+export function exportJson(snapshot: Snapshot): string {
+  const pretty = prettyJson(snapshot);
+  if (new TextEncoder().encode(pretty).byteLength <= LIMITS.maxBytes) return pretty;
+  return canonicalJson(snapshot);
+}
+
 function parseValue(data: unknown): Snapshot {
   if (!isPlainObject(data)) fail("A snapshot must be a JSON object.");
   if (own(data, "format") !== FORMAT) fail("format must be single-post-snapshot.");
