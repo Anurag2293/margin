@@ -117,6 +117,31 @@ describe("Reader", () => {
     expect(box()).toBeTruthy();
   });
 
+  it("keeps the open post when the skip link is used", async () => {
+    render(<Reader />);
+    fireEvent.click(screen.getByRole("button", { name: "Try the example" }));
+    await author("Sample Author");
+    const before = location.hash;
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: "Skip to content" }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "Sample Author" })).toBeTruthy();
+    expect(location.hash).toBe(before);
+    expect(document.activeElement?.id).toBe("content");
+  });
+
+  it("does not show an error when the skip link is used on the empty page", async () => {
+    render(<Reader />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: "Skip to content" }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(document.activeElement?.id).toBe("content");
+  });
+
   it("opens pasted JSON, explains a pasted address, and reports invalid JSON", async () => {
     render(<Reader />);
     paste("https://x.com/someone/status/42");

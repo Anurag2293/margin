@@ -197,7 +197,14 @@ export function Reader() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <a href="#content" className="skip-link">
+      <a
+        href="#content"
+        className="skip-link"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("content")?.focus();
+        }}
+      >
         Skip to content
       </a>
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
@@ -231,7 +238,8 @@ export function Reader() {
 
       <main
         id="content"
-        className="mx-auto flex w-full max-w-2xl min-w-0 flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-14"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-2xl min-w-0 flex-1 flex-col gap-6 px-4 py-8 outline-none sm:px-6 sm:py-14"
       >
         {phase.kind === "post" ? (
           <>
