@@ -55,10 +55,11 @@ describe("snapshot JSON Schema", () => {
       ["five media", base({ media: Array.from({ length: 5 }, () => ({ kind: "photo" })) })],
       ["unknown media kind", base({ media: [{ kind: "image" }] })],
       ["nested quote", base({ quote: { ...quote, quote } })],
+      ["quote date without time", base({ quote: { ...quote, createdAt: "yesterday" } })],
       ["remote avatar", base({ profile: { avatar: "https://example.com/a.png" } })],
       ["negative followers", base({ profile: { followers: -1 } })],
       ["http website", base({ profile: { website: "http://example.com" } })],
-      ...["url", "src", "href"].map(
+      ...["url", "src", "href", "source", "previewUrl", "poster"].map(
         (key): [string, unknown] => [`media ${key}`, base({ media: [{ kind: "photo", [key]: "https://example.com/a.jpg" }] })],
       ),
     ];
