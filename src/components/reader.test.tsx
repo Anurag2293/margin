@@ -61,8 +61,8 @@ describe("Reader", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try the example" }));
     expect(await author("Sample Author")).toBeTruthy();
     expect(location.hash).toMatch(/^#s1\.[A-Za-z0-9_-]+$/);
+    await waitFor(() => expect(document.activeElement?.id).toBe("post-author"));
     expect(document.title).toBe("Example — Margin");
-    expect(document.activeElement?.id).toBe("post-author");
 
     fireEvent.click(screen.getByRole("button", { name: "Close post" }));
     expect(screen.queryByRole("article")).toBeNull();
@@ -121,6 +121,7 @@ describe("Reader", () => {
     render(<Reader />);
     fireEvent.click(screen.getByRole("button", { name: "Try the example" }));
     await author("Sample Author");
+    await waitFor(() => expect(document.activeElement?.id).toBe("post-author"));
     const before = location.hash;
     await act(async () => {
       fireEvent.click(screen.getByRole("link", { name: "Skip to content" }));
