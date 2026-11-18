@@ -458,6 +458,67 @@ class SnapshotRulesTest {
     }
 
     @Test
+    fun readsOnlyStrictJsonAsJsonParseDoes() {
+        val post = """"authorName":"A","authorHandle":"a","text":"t""""
+        fun wrap(body: String = post, extra: String = "") = """{"format":"single-post-snapshot","version":1$extra,"post":{$body}}"""
+        val invalid = listOf(
+            "hello",
+            """{format:"single-post-snapshot",version:1,post:{$post}}""",
+            """{'format':'single-post-snapshot','version':1,'post':{$post}}""",
+            wrap("$post,"),
+            wrap("""$post,"media":[{"kind":"photo"},]"""),
+            wrap() + " // c",
+            "/* c */" + wrap(),
+            """{"format"="single-post-snapshot","version":1,"post":{$post}}""",
+            """{"format":"single-post-snapshot";"version":1;"post":{$post}}""",
+            "　" + wrap(),
+            """{"format":"single-post-snapshot",${" "}"version":1,"post":{$post}}""",
+            wrap(""""authorName":"A","authorHandle":"a","text":"x${"\t"}y""""),
+            wrap(""""authorName":"A","authorHandle":"a","text":"x${"\n"}y""""),
+            wrap(extra = ""","x":01"""),
+            wrap(extra = ""","x":1."""),
+            wrap(extra = ""","x":.5"""),
+            wrap(extra = ""","x":+1"""),
+            wrap(extra = ""","x":-"""),
+            wrap(extra = ""","x":1e"""),
+            wrap(extra = ""","x":0x10"""),
+            wrap(extra = ""","x":True"""),
+            wrap(extra = ""","x":nul"""),
+            wrap(""""authorName":"A","authorHandle":"a","text":"\x41""""),
+            wrap(""""authorName":"A","authorHandle":"a","text":"\u12""""),
+            wrap(""""authorName":"A","authorHandle":"a","text":"\'""""),
+            wrap(""""authorName":"A","authorHandle":"a","text":"t"""),
+            wrap() + "}",
+            wrap() + " 1",
+            "",
+            "   ",
+        )
+        for (text in invalid) assertEquals(text.take(80), ParseResult.Failed("This is not valid JSON."), SnapshotParser.parse(text))
+        assertEquals(Opened.Invalid("This is not valid JSON."), Importer.open("hello"))
+
+        fun ok(text: String): Post = (SnapshotParser.parse(text) as? ParseResult.Ok)?.snapshot?.post
+            ?: throw AssertionError("expected ${text.take(80)} to parse, got ${SnapshotParser.parse(text)}")
+        val duplicate = """{"format":"single-post-snapshot","version":1,"post":{$post},"post":{"authorName":"B","authorHandle":"b","text":"u"}}"""
+        assertEquals("B", ok(duplicate).authorName)
+        assertEquals("x y", ok(wrap(""""authorName":"A","authorHandle":"a","text":"x${" "}y"""")).text)
+        assertEquals("xy", ok(wrap(""""authorName":"A","authorHandle":"a","text":"x${"\u007F"}y"""")).text)
+        ok("""{"format":"single-post-snapshot","version":1e0,"post":{$post}}""")
+        ok("""{"format":"single-post-snapshot","version":10e-1,"post":{$post}}""")
+        assertContains((SnapshotParser.parse(wrap("""$post,"profile":{"followers":1e400}""")) as ParseResult.Failed).error, "followers must be a whole number")
+        ok(wrap(extra = ""","x":1e400"""))
+        ok(wrap(extra = ""","x":1e-400"""))
+        assertEquals(0L, ok(wrap("""$post,"profile":{"followers":-0}""")).profile?.followers)
+        val escaped = ok(wrap(""""authorName":"Aé\/\b","authorHandle":"a","text":"\"q\" \\ \t 🌳 \ud800""""))
+        assertEquals("Aé/", escaped.authorName)
+        assertEquals("\"q\" \\ \t 🌳 \uD800", escaped.text)
+        ok(wrap("""$post,"":1,"__proto__":{"text":"z"}"""))
+        ok(wrap("""$post,"media":[]""", ""","x":{},"y":[[],{}]"""))
+        ok(wrap(extra = ""","x":${"[".repeat(20_000)}${"]".repeat(20_000)}"""))
+        ok(wrap(extra = ""","x":${"{\"a\":".repeat(4_000)}1${"}".repeat(4_000)}"""))
+        ok(" \t\r\n${wrap()}\n ")
+    }
+
+    @Test
     fun importNeverThrowsAndAlwaysReturnsOneOfThreeKinds() {
         Gen.forAll(500, seed = 12, gen = { random ->
             when (random.nextInt(3)) {

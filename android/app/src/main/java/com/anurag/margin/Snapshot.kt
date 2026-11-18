@@ -1,9 +1,7 @@
 package com.anurag.margin
 
 import org.json.JSONArray
-import org.json.JSONException
 import org.json.JSONObject
-import org.json.JSONTokener
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.YearMonth
@@ -84,12 +82,7 @@ object SnapshotParser {
         if (text.toByteArray(Charsets.UTF_8).size > Limits.MAX_BYTES) {
             fail("That snapshot is larger than 48 KB.")
         }
-        val data = try {
-            val tokener = JSONTokener(text.trim())
-            tokener.nextValue().also { if (tokener.more()) fail("This is not valid JSON.") }
-        } catch (_: JSONException) {
-            fail("This is not valid JSON.")
-        }
+        val data = StrictJson.parse(text) ?: fail("This is not valid JSON.")
         ParseResult.Ok(parseValue(data))
     } catch (error: SnapshotException) {
         ParseResult.Failed(error.message ?: "Could not open that snapshot.")
