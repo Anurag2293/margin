@@ -17,16 +17,16 @@ export const HOSTILE = [
   "https://user:pass@example.com/",
   "https://example.com:8443/",
   "https://exa。mple.com/",
-  "‮gnp.exe",
-  "‏⁦rtl⁩",
+  "\u202Egnp.exe",
+  "\u200F\u2066rtl\u2069",
   "\u0000\u0007\u001B\u007F",
   "\r\n\r",
   "\t  　",
-  "café 日本語 🌳 👩🏽‍💻 é",
+  "café 日本語 🌳 👩🏽\u200D💻 é",
   "\uD800",
   "\uDFFF",
-  "  ",
-  "﻿",
+  "\u2028\u2029",
+  "\uFEFF",
 ];
 
 /** Any text, mixing unicode, hostile markup, URLs, control characters and lone surrogates. */

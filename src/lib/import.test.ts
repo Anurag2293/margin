@@ -6,7 +6,7 @@ import { canonicalJson } from "@/lib/snapshot";
 
 describe("classifyImport", () => {
   it("reads a snapshot with a BOM and surrounding whitespace", () => {
-    const result = classifyImport(`﻿ \n${canonicalJson(EXAMPLE_SNAPSHOT)}\n `);
+    const result = classifyImport(`\uFEFF \n${canonicalJson(EXAMPLE_SNAPSHOT)}\n `);
     expect(result.type).toBe("snapshot");
   });
 
@@ -19,7 +19,7 @@ describe("classifyImport", () => {
 
   it("explains empty and invalid input", () => {
     expect(classifyImport("")).toEqual({ type: "invalid", error: "Paste a snapshot first." });
-    expect(classifyImport("﻿   ")).toEqual({ type: "invalid", error: "Paste a snapshot first." });
+    expect(classifyImport("\uFEFF   ")).toEqual({ type: "invalid", error: "Paste a snapshot first." });
     expect(classifyImport("hello")).toEqual({ type: "invalid", error: "This is not valid JSON." });
     expect(classifyImport("{}")).toMatchObject({ type: "invalid" });
   });
