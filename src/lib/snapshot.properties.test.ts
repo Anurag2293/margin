@@ -286,3 +286,34 @@ describe("example snapshot", () => {
     expect(parseSnapshot(canonicalJson(EXAMPLE_SNAPSHOT))).toEqual({ ok: true, snapshot: toCanonical(EXAMPLE_SNAPSHOT) });
   });
 });
+
+describe("calendar dates", () => {
+  it("rejects createdAt days and hours that do not exist instead of rolling them over", () => {
+    for (const createdAt of [
+      "2026-02-29T10:00:00Z",
+      "2026-02-30T10:00:00Z",
+      "2026-04-31T10:00:00Z",
+      "2026-01-01T24:00:00Z",
+    ]) {
+      expect(rejected({ createdAt }), createdAt).toContain("createdAt");
+      expect(rejected({ quote: { authorName: "Q", authorHandle: "q", text: "t", createdAt } }), createdAt).toContain("createdAt");
+    }
+    expect(accepted({ createdAt: "2024-02-29T23:59:59.999Z" }).post.createdAt).toBe("2024-02-29T23:59:59.999Z");
+  });
+
+  it("rejects joinedAt days that do not exist", () => {
+    for (const joinedAt of ["2014-02-30", "2014-06-31", "2014-02-30T10:00:00Z"]) {
+      expect(rejected({ profile: { joinedAt } }), joinedAt).toContain("joinedAt");
+    }
+    expect(accepted({ profile: { joinedAt: "2016-02-29" } }).post.profile?.joinedAt).toBe("2016-02-29");
+  });
+
+  it("accepts every real instant written by toISOString", () => {
+    fc.assert(
+      fc.property(fc.date({ min: new Date("1000-01-01T00:00:00Z"), max: new Date("9999-12-31T23:59:59Z"), noInvalidDate: true }), (date) => {
+        const createdAt = date.toISOString();
+        expect(accepted({ createdAt }).post.createdAt).toBe(createdAt);
+      }),
+    );
+  });
+});

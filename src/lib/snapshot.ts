@@ -50,7 +50,7 @@ const MEDIA_KINDS = new Set<MediaKind>(["photo", "video", "gif", "audio"]);
 const URL_KEYS = ["url", "src", "href", "source", "previewUrl", "poster"] as const;
 const ISO_TIME =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
-const JOINED = /^\d{4}-\d{2}(?:-\d{2})?$/;
+const JOINED = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/;
 const AVATAR = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 const PROFILE_TEXT = ["bio", "location"] as const;
 const PROFILE_COUNTS = ["followers", "following", "posts"] as const;
@@ -197,7 +197,7 @@ function parseOptionalTime(value: unknown, label: string): string | undefined {
     fail(`${label} createdAt must be an ISO-8601 timestamp like 2026-04-02T16:30:00.000Z.`);
   }
   const time = value.trim();
-  if (!ISO_TIME.test(time) || Number.isNaN(Date.parse(time))) {
+  if (!isRealTime(time)) {
     fail(`${label} createdAt must be an ISO-8601 timestamp like 2026-04-02T16:30:00.000Z.`);
   }
   return time;
@@ -268,9 +268,8 @@ function parseOptionalProfile(value: unknown, label: string): Profile | undefine
   if (joinedAt !== undefined) {
     if (typeof joinedAt !== "string") fail(`${where} joinedAt must be a date like 2014-03 or 2014-03-21.`);
     const trimmed = joinedAt.trim();
-    const valid =
-      (JOINED.test(trimmed) && !Number.isNaN(Date.parse(trimmed.length === 7 ? `${trimmed}-01` : trimmed))) ||
-      (ISO_TIME.test(trimmed) && !Number.isNaN(Date.parse(trimmed)));
+    const day = JOINED.exec(trimmed);
+    const valid = (day && isRealDay(day[1], day[2], day[3] ?? "01")) || isRealTime(trimmed);
     if (!valid) fail(`${where} joinedAt must be a date like 2014-03 or 2014-03-21.`);
     profile.joinedAt = trimmed;
   }
@@ -291,6 +290,18 @@ function parseOptionalProfile(value: unknown, label: string): Profile | undefine
   }
 
   return Object.keys(profile).length ? profile : undefined;
+}
+
+function isRealTime(value: string): boolean {
+  const match = ISO_TIME.exec(value);
+  if (!match || Number(match[4]) > 23) return false;
+  return isRealDay(match[1], match[2], match[3]) && !Number.isNaN(Date.parse(value));
+}
+
+function isRealDay(year: string, month: string, day: string): boolean {
+  const date = new Date(0);
+  date.setUTCFullYear(Number(year), Number(month) - 1, Number(day));
+  return date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day);
 }
 
 function isPlainHttps(value: string): boolean {
