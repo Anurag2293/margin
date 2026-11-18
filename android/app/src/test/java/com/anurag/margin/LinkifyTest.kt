@@ -116,6 +116,19 @@ class LinkifyTest {
     }
 
     @Test
+    fun endsALinkAtAnyCharacterJavaScriptCountsAsWhiteSpace() {
+        for (space in Gen.JS_SPACE) {
+            val text = "見て https://example.com/a${space}次へ"
+            assertEquals(org.json.JSONObject.quote(text), listOf("見て ", "https://example.com/a", "${space}次へ"), values(text))
+        }
+        Gen.forAll(500, seed = 18, gen = ::anyText) { text ->
+            for (part in Linkify.split(text)) {
+                if (part !is TextPart.Plain) assertFalse(part.value.any { it in Gen.JS_SPACE })
+            }
+        }
+    }
+
+    @Test
     fun linksALinkedValueTheSameWayWhenItStandsAlone() {
         Gen.forAll(500, seed = 17, gen = ::anyText) { text ->
             for (part in Linkify.split(text)) {

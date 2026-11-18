@@ -77,7 +77,7 @@ sealed interface TextPart {
 }
 
 object Linkify {
-    private val urlPattern = Regex("""https://[^\s<>"'`]+""", RegexOption.IGNORE_CASE)
+    private val urlPattern = Regex("""https://[^$JS_SPACE<>"'`]+""", RegexOption.IGNORE_CASE)
 
     fun split(text: String): List<TextPart> {
         val parts = mutableListOf<TextPart>()
