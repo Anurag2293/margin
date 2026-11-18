@@ -107,6 +107,24 @@ class LinkifyTest {
     }
 
     @Test
+    fun trimsClosingBracketsAndPunctuationInAnyOrderAfterALink() {
+        assertEquals(listOf("https://example.com/a"), hrefs("[see (https://example.com/a)]"))
+        assertEquals(listOf("https://example.com/a_(b)"), hrefs("(https://example.com/a_(b))]"))
+        assertEquals(listOf("https://example.com/a"), hrefs("(see https://example.com/a.)"))
+        assertEquals(listOf("https://example.com/a"), hrefs("[https://example.com/a]."))
+        assertEquals(listOf("[see (", "https://example.com/a", ")]"), values("[see (https://example.com/a)]"))
+    }
+
+    @Test
+    fun linksALinkedValueTheSameWayWhenItStandsAlone() {
+        Gen.forAll(500, seed = 17, gen = ::anyText) { text ->
+            for (part in Linkify.split(text)) {
+                if (part is TextPart.Link) assertEquals(listOf(part), Linkify.split(part.value))
+            }
+        }
+    }
+
+    @Test
     fun handlesTensOfThousandsOfClosingBracketsInLinearTime() {
         Linkify.split("https://example.com/))")
         for ((tail, count) in listOf(")" to 11_980, "]" to 11_980, ")" to 40_000, "]" to 40_000)) {

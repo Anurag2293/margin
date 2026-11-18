@@ -102,14 +102,18 @@ object Linkify {
     }
 
     private fun trimTrailing(raw: String): Pair<String, String> {
+        val opens = mapOf(')' to raw.count { it == '(' }, ']' to raw.count { it == '[' })
+        val closes = mutableMapOf(')' to raw.count { it == ')' }, ']' to raw.count { it == ']' })
         var end = raw.length
-        while (end > 0 && raw[end - 1] in ".,;:!?") end -= 1
-        for ((open, close) in listOf('(' to ')', '[' to ']')) {
-            val opens = raw.count { it == open }
-            var closes = raw.count { it == close }
-            while (end > 0 && raw[end - 1] == close && opens < closes) {
-                closes -= 1
+        while (end > 0) {
+            val char = raw[end - 1]
+            if (char in ".,;:!?") {
                 end -= 1
+            } else if (char in closes && opens.getValue(char) < closes.getValue(char)) {
+                closes[char] = closes.getValue(char) - 1
+                end -= 1
+            } else {
+                break
             }
         }
         return raw.substring(0, end) to raw.substring(end)
