@@ -158,6 +158,53 @@ class SnapshotRulesTest {
         }
     }
 
+    private val control = Regex("[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\r]")
+    private val bidi = Regex("[\u200E\u200F\u202A-\u202E\u2066-\u2069]")
+
+    private fun checkPost(post: Post) {
+        assertTrue(post.authorName.isNotEmpty() && post.authorName.length <= Limits.MAX_NAME)
+        assertFalse(control.containsMatchIn(post.authorName) || bidi.containsMatchIn(post.authorName))
+        assertEquals(Gen.jsTrim(post.authorName), post.authorName)
+        assertTrue(Regex("^[A-Za-z0-9_]{1,15}$").matches(post.authorHandle))
+        assertTrue(post.text.length <= Limits.MAX_TEXT)
+        assertFalse(control.containsMatchIn(post.text))
+        assertEquals(Gen.jsTrim(post.text), post.text)
+        if (post.text.isEmpty()) assertTrue(post.media.isNotEmpty())
+        assertTrue(post.media.size <= Limits.MAX_MEDIA)
+        for (item in post.media) item.alt?.let { assertEquals(Gen.jsTrim(it), it); assertTrue(it.isNotEmpty()) }
+        post.profile?.bio?.let { assertEquals(Gen.jsTrim(it), it); assertTrue(it.isNotEmpty()) }
+        post.profile?.location?.let { assertEquals(Gen.jsTrim(it), it); assertFalse(it.any { c -> c in Gen.JS_SPACE && c != ' ' }) }
+        post.sourceUrl?.let { assertTrue(it, Regex("^https://(x|twitter)\\.com/").containsMatchIn(it)) }
+    }
+
+    @Test
+    fun onlyAcceptsSnapshotsThatKeepEveryDocumentedRule() {
+        Gen.forAll(400, seed = 19, gen = Gen::rawSnapshot) { raw ->
+            val parsed = SnapshotParser.parse(raw) as? ParseResult.Ok ?: return@forAll
+            checkPost(parsed.snapshot.post)
+            parsed.snapshot.post.quote?.let(::checkPost)
+        }
+    }
+
+    @Test
+    fun trimsAndFlattensTheWhiteSpaceJavaScriptTrims() {
+        val snapshot = accepted(mapOf(
+            "authorName" to "\uFEFFAda\u3000\u00A0Lovelace\u2009",
+            "text" to "\uFEFF\u3000Hello\u2028\uFEFF",
+            "lang" to "\uFEFFen",
+            "createdAt" to "\uFEFF2026-04-02T16:30:00Z\u3000",
+            "media" to media(item("kind" to "photo", "alt" to "\uFEFF")),
+            "profile" to JSONObject().put("bio", "\uFEFF").put("location", "Tokyo\u3000\uFEFFJapan").put("website", "\uFEFFhttps://example.com/"),
+        ))
+        assertEquals("Ada Lovelace", snapshot.post.authorName)
+        assertEquals("Hello", snapshot.post.text)
+        assertEquals("en", snapshot.post.lang)
+        assertEquals("2026-04-02T16:30:00Z", snapshot.post.createdAt)
+        assertEquals(listOf(Media(MediaKind.PHOTO)), snapshot.post.media)
+        assertEquals(Profile(location = "Tokyo Japan", website = "https://example.com/"), snapshot.post.profile)
+        assertEquals(Opened.UrlOnly("https://example.com/post", false), Importer.open("\uFEFF\uFEFF\u3000https://example.com/post"))
+    }
+
     @Test
     fun acceptsMostGeneratedSnapshotsSoThePropertiesAreNotVacuous() {
         val random = kotlin.random.Random(9)

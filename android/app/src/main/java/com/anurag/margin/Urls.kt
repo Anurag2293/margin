@@ -11,7 +11,7 @@ object Urls {
     private val hostChars = Regex("""^[a-z0-9.-]+$""")
 
     fun isBlockedHost(hostname: String): Boolean {
-        val host = hostname.trim().lowercase().removeSuffix(".").removePrefix("[").removeSuffix("]")
+        val host = hostname.jsTrim().lowercase().removeSuffix(".").removePrefix("[").removeSuffix("]")
         if (host.isEmpty()) return false
         return blockedRoots.any { host == it || host.endsWith(".$it") }
     }
@@ -70,7 +70,7 @@ object Urls {
     fun isPlainHttps(value: String): Boolean = plainHttpsHost(value, allowIdn = true) != null
 
     fun canonicalStatusUrl(input: String): String? {
-        val trimmed = input.trim()
+        val trimmed = input.jsTrim()
         if (trimmed.isEmpty() || trimmed.length > Limits.MAX_SOURCE_URL) return null
         val host = plainHttpsHost(trimmed) ?: return null
         if (host !in statusHosts) return null
@@ -84,8 +84,8 @@ object Urls {
     }
 
     fun looksLikeBareUrl(text: String): Boolean {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty() || trimmed.length > 2_000 || trimmed.any { it.isWhitespace() }) return false
+        val trimmed = text.jsTrim()
+        if (trimmed.isEmpty() || trimmed.length > 2_000 || trimmed.any { it.isJsSpace() }) return false
         return Regex(
             """^(https?://|x\.com/|twitter\.com/|www\.x\.com/|www\.twitter\.com/|mobile\.twitter\.com/)""",
             RegexOption.IGNORE_CASE,
@@ -93,7 +93,7 @@ object Urls {
     }
 
     fun isXFamilyUrl(text: String): Boolean {
-        val trimmed = text.trim()
+        val trimmed = text.jsTrim()
         val rest = trimmed.replace(Regex("^https?://", RegexOption.IGNORE_CASE), "")
         val host = rest.split('/', '?', '#').first().substringAfterLast('@').substringBefore(':').lowercase()
         return listOf("x.com", "twitter.com", "t.co").any { host == it || host.endsWith(".$it") }

@@ -113,6 +113,15 @@ class UrlsTest {
     }
 
     @Test
+    fun trimsAndSplitsAddressesOnTheWhiteSpaceJavaScriptUses() {
+        assertEquals("https://x.com/ada/status/1", Urls.canonicalStatusUrl("\uFEFF\u3000https://x.com/ada/status/1\u2028"))
+        assertNull(Urls.canonicalStatusUrl("\u001Fhttps://x.com/ada/status/1"))
+        assertTrue(Urls.looksLikeBareUrl("\uFEFFhttps://example.com\u3000"))
+        assertFalse(Urls.looksLikeBareUrl("https://example.com/\uFEFFmore"))
+        assertTrue(Urls.isXFamilyUrl("\uFEFFx.com/a"))
+    }
+
+    @Test
     fun knowsXTwitterAndTcoAddresses() {
         for (text in listOf("https://x.com/a", "x.com/a/status/1", "https://mobile.twitter.com/a", "http://t.co/abc", "https://WWW.X.COM")) {
             assertTrue(text, Urls.isXFamilyUrl(text))

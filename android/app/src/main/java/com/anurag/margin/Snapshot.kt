@@ -162,8 +162,8 @@ object SnapshotParser {
     private fun parseOptionalTime(value: Any?, label: String): String? {
         if (value == null) return null
         val message = "$label createdAt must be an ISO-8601 timestamp like 2026-04-02T16:30:00.000Z."
-        if (value !is String || value.isBlank()) fail(message)
-        val time = value.trim()
+        if (value !is String || value.jsTrim().isEmpty()) fail(message)
+        val time = value.jsTrim()
         if (!isoTime.matches(time) || parseInstant(time) == null) fail(message)
         return time
     }
@@ -179,7 +179,7 @@ object SnapshotParser {
         if (value == null) return null
         val message = "$label lang must be a language tag like en or pt-BR."
         if (value !is String) fail(message)
-        val lang = value.trim()
+        val lang = value.jsTrim()
         if (!langTag.matches(lang) || lang.length > Limits.MAX_LANG) fail(message)
         return lang
     }
@@ -218,7 +218,7 @@ object SnapshotParser {
 
         val avatarValue = value.opt("avatar")?.let { raw ->
             if (raw !is String) fail("$where avatar must be a data:image URI.")
-            val trimmed = raw.trim()
+            val trimmed = raw.jsTrim()
             if (trimmed.length > Limits.MAX_AVATAR) fail("$where avatar is longer than 20,000 characters.")
             if (!avatar.matches(trimmed)) fail("$where avatar must be a base64 data:image URI of a JPEG, PNG, or WebP.")
             trimmed
@@ -235,7 +235,7 @@ object SnapshotParser {
         val website = value.opt("website")?.let { raw ->
             val message = "$where website must be an https link."
             if (raw !is String) fail(message)
-            val trimmed = raw.trim()
+            val trimmed = raw.jsTrim()
             if (trimmed.length > Limits.MAX_WEBSITE || !Urls.isPlainHttps(trimmed)) fail(message)
             trimmed
         }
@@ -243,7 +243,7 @@ object SnapshotParser {
         val joinedAt = value.opt("joinedAt")?.let { raw ->
             val message = "$where joinedAt must be a date like 2014-03 or 2014-03-21."
             if (raw !is String) fail(message)
-            val trimmed = raw.trim()
+            val trimmed = raw.jsTrim()
             val valid = (joined.matches(trimmed) && parseJoined(trimmed) != null) ||
                 (isoTime.matches(trimmed) && parseInstant(trimmed) != null)
             if (!valid) fail(message)
@@ -289,8 +289,8 @@ object SnapshotParser {
     private fun clean(input: String, multiline: Boolean, stripBidi: Boolean): String {
         var value = input.replace("\r\n", "\n").replace('\r', '\n').replace(control, "")
         if (stripBidi) value = value.replace(bidi, "")
-        if (!multiline) value = value.replace(Regex("\\s+"), " ")
-        return value.trim()
+        if (!multiline) value = value.replace(jsSpaceRun, " ")
+        return value.jsTrim()
     }
 
     private fun fail(message: String): Nothing = throw SnapshotException(message)

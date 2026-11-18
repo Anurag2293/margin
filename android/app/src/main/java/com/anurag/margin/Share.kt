@@ -99,7 +99,7 @@ sealed interface Opened {
 
 object Importer {
     fun open(input: String): Opened {
-        val text = input.removePrefix("﻿").trim()
+        val text = input.removePrefix("﻿").jsTrim()
         if (text.isEmpty()) return Opened.Invalid("Paste a snapshot first.")
         if (!text.startsWith("{")) {
             val link = Share.tokenFromLink(text) ?: Share.findLink(text)?.let(Share::tokenFromLink)
