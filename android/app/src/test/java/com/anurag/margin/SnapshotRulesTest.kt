@@ -486,6 +486,7 @@ class SnapshotRulesTest {
             wrap(extra = ""","x":nul"""),
             wrap(""""authorName":"A","authorHandle":"a","text":"\x41""""),
             wrap(""""authorName":"A","authorHandle":"a","text":"\u12""""),
+            wrap(""""authorName":"A","authorHandle":"a","text":"\u００４１""""),
             wrap(""""authorName":"A","authorHandle":"a","text":"\'""""),
             wrap(""""authorName":"A","authorHandle":"a","text":"t"""),
             wrap() + "}",

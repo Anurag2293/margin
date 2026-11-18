@@ -160,7 +160,7 @@ object StrictJson {
             'u' -> {
                 if (index + 4 > text.length) throw Malformed()
                 val hex = text.substring(index, index + 4)
-                if (!hex.all { Character.digit(it, 16) >= 0 }) throw Malformed()
+                if (!hex.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) throw Malformed()
                 index += 4
                 hex.toInt(16).toChar()
             }
