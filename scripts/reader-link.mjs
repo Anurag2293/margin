@@ -12,7 +12,8 @@ import fs from "node:fs";
 import zlib from "node:zlib";
 
 const origin = (process.argv[2] ?? "http://127.0.0.1:43123").replace(/\/$/, "");
-const input = fs.readFileSync(0);
+const raw = fs.readFileSync(0);
+const input = raw[0] === 0xef && raw[1] === 0xbb && raw[2] === 0xbf ? raw.subarray(3) : raw;
 if (input.byteLength > 48 * 1024) {
   console.error("snapshot is larger than 48 KB");
   process.exit(1);

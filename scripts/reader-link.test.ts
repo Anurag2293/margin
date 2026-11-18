@@ -30,6 +30,13 @@ describe("scripts/reader-link.mjs", () => {
     expect(run("{}", ["https://margin.example/reader"]).stdout).toMatch(/^https:\/\/margin\.example\/reader\/#s1\./);
   });
 
+  it("accepts a file saved with a byte order mark, as the reader does", async () => {
+    const out = run(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(canonicalJson(EXAMPLE_SNAPSHOT))]));
+    expect(out.stderr).toBe("");
+    expect(out.status).toBe(0);
+    expect(await decodeLink(out.stdout)).toEqual({ ok: true, snapshot: toCanonical(EXAMPLE_SNAPSHOT) });
+  });
+
   it("rejects invalid JSON with exit code 1", () => {
     const out = run("{not json");
     expect(out.status).toBe(1);
