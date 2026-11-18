@@ -23,7 +23,9 @@ object Urls {
     fun plainHttpsHost(value: String, allowIdn: Boolean = false): String? {
         if (value.any { it.code <= 0x20 || it.code == 0x7F || it == '\\' || it == '@' }) return null
         val match = httpsParts.matchEntire(value) ?: return null
-        val written = match.groupValues[1].removeSuffix(".")
+        val port = match.groupValues[1].substringAfter(':', "")
+        if (port.isNotEmpty() && (!port.all { it in '0'..'9' } || port.toBigInteger() != BigInteger.valueOf(443))) return null
+        val written = match.groupValues[1].substringBefore(':').removeSuffix(".")
         val host = if (allowIdn) {
             try {
                 IDN.toASCII(written, IDN.ALLOW_UNASSIGNED).lowercase()

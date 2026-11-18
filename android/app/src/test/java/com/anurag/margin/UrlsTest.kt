@@ -33,6 +33,20 @@ class UrlsTest {
     }
 
     @Test
+    fun acceptsTheDefaultPortWrittenOutAsTheWebDoes() {
+        for (port in listOf(":443", ":", ":0443")) {
+            assertEquals(port, "https://x.com/ada/status/1", Urls.canonicalStatusUrl("https://x.com$port/ada/status/1"))
+            assertTrue(port, Urls.isPlainHttps("https://example.com$port/a"))
+            assertTrue(port, Linkify.classify("https://example.com$port/a") is TextPart.Plain)
+        }
+        for (port in listOf(":8443", ":443.", ":44 3", ":-443", ":+443", ":0x1bb")) {
+            assertNull(port, Urls.canonicalStatusUrl("https://x.com$port/ada/status/1"))
+            assertFalse(port, Urls.isPlainHttps("https://example.com$port/a"))
+        }
+        assertTrue(SnapshotParser.parse("""{"format":"single-post-snapshot","version":1,"post":{"authorName":"A","authorHandle":"a","text":"t","sourceUrl":"https://x.com:443/a/status/1"}}""") is ParseResult.Ok)
+    }
+
+    @Test
     fun rejectsAnythingElseAsAStatusUrl() {
         val inputs = listOf(
             "http://x.com/ada/status/1",
