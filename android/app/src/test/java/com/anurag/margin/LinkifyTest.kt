@@ -138,6 +138,23 @@ class LinkifyTest {
     }
 
     @Test
+    fun doesNotLinkLookalikeHostsWrittenWithOtherDotsPercentEscapesOrIdn() {
+        assertEquals(emptyList<String>(), hrefs("https://exa。mple.com/ https://%78.com/a https://例え.jp/ https://0x7f.1/"))
+        assertTrue(Linkify.split("HTTPS://X.COM/a/status/1")[0] is TextPart.Blocked)
+        assertFalse(Linkify.split("https://x.com。evil.example/")[0] is TextPart.Link)
+    }
+
+    @Test
+    fun linksANumericHostOnlyWhenTheWebReadsItAsWritten() {
+        val linked = listOf("127.0.0.1", "127.0.0.1.", "255.255.255.255", "0.0.0.0", "999.example", "1.example", "0x10.example", "example.0x1g", "1e3")
+        val text = listOf("0x7f.1", "1.2.3", "2130706433", "0177.0.0.1", "1.2.3.256", "a.1", "01.02.03.04", "0x", "1.0x10", "256.1.1.1", "1.2.3.4.5", "4294967296", "09.1.1.1", "1.2.3.09")
+        for (host in linked) assertTrue(host, Linkify.classify("https://$host/a") is TextPart.Link)
+        for (host in text) assertTrue(host, Linkify.classify("https://$host/a") is TextPart.Plain)
+        for (host in listOf("0x7f.1", "1.2.3", "2130706433", "01.02.03.04", "0x")) assertTrue(host, Urls.isPlainHttps("https://$host/a"))
+        for (host in listOf("1.2.3.256", "a.1", "256.1.1.1", "1.2.3.4.5", "4294967296", "09.1.1.1")) assertFalse(host, Urls.isPlainHttps("https://$host/a"))
+    }
+
+    @Test
     fun handlesTensOfThousandsOfClosingBracketsInLinearTime() {
         Linkify.split("https://example.com/))")
         for ((tail, count) in listOf(")" to 11_980, "]" to 11_980, ")" to 40_000, "]" to 40_000)) {

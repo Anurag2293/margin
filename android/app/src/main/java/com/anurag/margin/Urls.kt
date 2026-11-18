@@ -1,5 +1,6 @@
 package com.anurag.margin
 
+import java.math.BigInteger
 import java.net.IDN
 
 object Urls {
@@ -33,7 +34,35 @@ object Urls {
             written.lowercase()
         }
         if (host.isEmpty() || !hostChars.matches(host) || host.startsWith(".") || host.contains("..")) return null
-        return host
+        return if (endsInNumber(host)) ipv4(host) else host
+    }
+
+    /** The browser's URL parser reads a host whose last label is a number as an IPv4 address. */
+    private fun endsInNumber(host: String): Boolean {
+        val last = host.substringAfterLast('.')
+        return last.isNotEmpty() && (last.all { it in '0'..'9' } || (last.startsWith("0x") && last.drop(2).all { it in "0123456789abcdef" }))
+    }
+
+    /** The dotted form the URL parser gives an IPv4 host written in decimal, octal, or hex parts, or null where it fails. */
+    private fun ipv4(host: String): String? {
+        val parts = host.split('.')
+        if (parts.size > 4) return null
+        val numbers = parts.map { ipv4Number(it) ?: return null }
+        val byte = BigInteger.valueOf(256)
+        if (numbers.dropLast(1).any { it >= byte } || numbers.last() >= byte.pow(5 - parts.size)) return null
+        var address = numbers.last()
+        numbers.dropLast(1).forEachIndexed { index, number -> address += number * byte.pow(3 - index) }
+        return (3 downTo 0).joinToString(".") { address.shiftRight(8 * it).and(BigInteger.valueOf(255)).toString() }
+    }
+
+    private fun ipv4Number(part: String): BigInteger? {
+        val (digits, radix) = when {
+            part.startsWith("0x") -> part.drop(2) to 16
+            part.length > 1 && part.startsWith("0") -> part.drop(1) to 8
+            else -> part to 10
+        }
+        if (part.isEmpty() || !digits.all { Character.digit(it, radix) >= 0 }) return null
+        return if (digits.isEmpty()) BigInteger.ZERO else BigInteger(digits, radix)
     }
 
     fun isPlainHttps(value: String): Boolean = plainHttpsHost(value, allowIdn = true) != null
@@ -97,6 +126,8 @@ object Linkify {
     fun classify(raw: String): TextPart {
         if (raw.length > 2_000) return TextPart.Plain(raw)
         val host = Urls.plainHttpsHost(raw) ?: return TextPart.Plain(raw)
+        val written = raw.substring("https://".length).takeWhile { it !in "/?#" }.removeSuffix(".").lowercase()
+        if (host != written) return TextPart.Plain(raw)
         if (Urls.isBlockedHost(host)) return TextPart.Blocked(raw)
         return TextPart.Link(raw, raw)
     }
