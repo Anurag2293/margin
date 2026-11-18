@@ -73,26 +73,21 @@ export function classify(raw: string): TextPart {
 }
 
 function trimTrailing(raw: string): { url: string; rest: string } {
-  let url = raw;
-  let rest = "";
-
-  const punctuation = url.match(/[.,;:!?]+$/);
-  if (punctuation) {
-    rest = punctuation[0];
-    url = url.slice(0, -punctuation[0].length);
-  }
-
-  for (const [open, close] of [["(", ")"], ["[", "]"]]) {
-    const opens = count(url, open);
-    let closes = count(url, close);
-    while (url.endsWith(close) && opens < closes) {
-      rest = `${close}${rest}`;
-      url = url.slice(0, -1);
-      closes -= 1;
+  const opens: Record<string, number> = { ")": count(raw, "("), "]": count(raw, "[") };
+  const closes: Record<string, number> = { ")": count(raw, ")"), "]": count(raw, "]") };
+  let end = raw.length;
+  while (end > 0) {
+    const char = raw[end - 1];
+    if (".,;:!?".includes(char)) {
+      end -= 1;
+    } else if ((char === ")" || char === "]") && opens[char] < closes[char]) {
+      closes[char] -= 1;
+      end -= 1;
+    } else {
+      break;
     }
   }
-
-  return { url, rest };
+  return { url: raw.slice(0, end), rest: raw.slice(end) };
 }
 
 function count(value: string, char: string): number {

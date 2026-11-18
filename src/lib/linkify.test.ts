@@ -120,6 +120,14 @@ describe("linkify properties", () => {
     expect(parts.map((part) => part.value)).toEqual(["Go (", "https://example.com/a", ")."]);
   });
 
+  it("trims closing brackets and punctuation in any order after a link", () => {
+    expect(hrefs("[see (https://example.com/a)]")).toEqual(["https://example.com/a"]);
+    expect(hrefs("(https://example.com/a_(b))]")).toEqual(["https://example.com/a_(b)"]);
+    expect(hrefs("(see https://example.com/a.)")).toEqual(["https://example.com/a"]);
+    expect(hrefs("[https://example.com/a].")).toEqual(["https://example.com/a"]);
+    expect(linkify("[see (https://example.com/a)]").map((part) => part.value)).toEqual(["[see (", "https://example.com/a", ")]"]);
+  });
+
   it("does not link lookalike hosts written with other dots, percent escapes, or IDN", () => {
     expect(hrefs("https://exa。mple.com/ https://%78.com/a https://例え.jp/ https://0x7f.1/")).toEqual([]);
     expect(linkify("HTTPS://X.COM/a/status/1")[0].type).toBe("blocked");
